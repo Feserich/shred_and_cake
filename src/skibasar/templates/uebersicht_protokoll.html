@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Protokoll{% endblock %}
+{% block content %}
+{% set entities = {"seller": "Verkäufer", "article": "Artikel", "sale": "Verkauf"} %}
+{% set actions = {"create": "angelegt", "update": "geändert", "delete": "gelöscht", "cancel": "storniert", "settle": "abgerechnet"} %}
+<h1>Übersicht</h1>
+{% include "uebersicht_tabs.html" %}
+<form method="get" class="filter-row">
+  <select name="entity" aria-label="Bereich">
+    <option value="">Alles</option>
+    {% for key, label in entities.items() %}<option value="{{ key }}" {{ "selected" if entity == key }}>{{ label }}</option>{% endfor %}
+  </select>
+  <button type="submit">Filtern</button>
+</form>
+<div class="table-wrap"><table>
+  <tr><th>Zeit</th><th>Gerät</th><th>Bereich</th><th class="num">ID</th><th>Aktion</th><th>Vorher</th><th>Nachher</th></tr>
+  {% for e in rows %}
+  <tr>
+    <td>{{ e.timestamp.strftime("%d.%m.%Y %H:%M:%S") }}</td><td>{{ e.client }}</td>
+    <td>{{ entities.get(e.entity, e.entity) }}</td><td class="num">{{ e.entity_id or "" }}</td>
+    <td>{{ actions.get(e.action, e.action) }}</td>
+    <td><code>{{ e.before }}</code></td><td><code>{{ e.after }}</code></td>
+  </tr>
+  {% else %}
+  <tr><td colspan="7" class="muted">Noch keine Änderungen protokolliert.</td></tr>
+  {% endfor %}
+</table></div>
+{% if rows|length >= limit %}<p class="muted">Es werden nur die letzten {{ limit }} Einträge angezeigt.</p>{% endif %}
+{% endblock %}

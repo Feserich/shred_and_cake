@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Übersicht Verkäufer{% endblock %}
+{% block content %}
+<h1>Übersicht</h1>
+{% include "uebersicht_tabs.html" %}
+<form method="get" class="filter-row">
+  <input type="search" name="q" value="{{ q }}" placeholder="Name oder Artikelnummer" aria-label="Suche">
+  <select name="art" aria-label="Art">
+    <option value="">Alle Arten</option>
+    <option value="private" {{ "selected" if art == "private" }}>Privat</option>
+    <option value="shop" {{ "selected" if art == "shop" }}>Händler</option>
+  </select>
+  <select name="status" aria-label="Status">
+    <option value="">Alle</option>
+    <option value="offen" {{ "selected" if status == "offen" }}>Offen</option>
+    <option value="abgerechnet" {{ "selected" if status == "abgerechnet" }}>Abgerechnet</option>
+  </select>
+  <button type="submit">Filtern</button>
+</form>
+<div class="table-wrap"><table>
+  <tr><th>Name</th><th>Art</th><th class="num">Artikel</th><th>Gebühr</th><th>Status</th><th></th></tr>
+  {% for seller in rows %}
+  <tr>
+    <td>{{ seller.display_name }}</td>
+    <td>{{ "Händler" if seller.type.value == "shop" else "Privat" }}</td>
+    <td class="num">{{ seller.articles|length }}</td>
+    <td>{% if seller.fee_exempt %}<span class="badge off">frei</span>{% elif seller.offer_fee_paid_at_entry or seller.settled_at %}<span class="badge ok">bezahlt</span>{% else %}<span class="badge warn">offen</span>{% endif %}</td>
+    <td>{% if seller.settled_at %}<span class="badge ok">abgerechnet</span>{% else %}<span class="badge warn">offen</span>{% endif %}</td>
+    <td><a href="/uebersicht/verkaeufer/{{ seller.id }}">Bearbeiten</a></td>
+  </tr>
+  {% else %}
+  <tr><td colspan="6" class="muted">Keine Verkäufer gefunden. Neue Verkäufer legst du bei der Annahme an.</td></tr>
+  {% endfor %}
+</table></div>
+{% if rows|length >= limit %}<p class="muted">Es werden nur die ersten {{ limit }} Zeilen angezeigt – bitte die Suche verfeinern.</p>{% endif %}
+{% endblock %}
+{% block help %}
+<details class="help"><summary>Hilfe</summary>
+<p>Hier siehst du alle Verkäufer, Artikel und Verkäufe. Jede Änderung wird im Protokoll festgehalten.</p>
+</details>
+{% endblock %}

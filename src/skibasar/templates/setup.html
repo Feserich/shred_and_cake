@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Einstellungen{% endblock %}
+{% block content %}
+<h1>Einstellungen</h1>
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+{% if saved %}<div data-toast="ok">Gespeichert.</div>{% endif %}
+<form method="post" action="/einstellungen">
+  <label>Name der Veranstaltung <input name="name" value="{{ f.name }}" required></label>
+  <label>Datum <input type="date" name="event_date" value="{{ f.event_date }}"></label>
+  <label>Erste Nummer für Privatverkäufer <input name="private_number_start" inputmode="numeric" value="{{ f.private_number_start }}"></label>
+  <h2>Privatverkäufer</h2>
+  <label>Angebotsgebühr (€) <input name="offer_fee_private" data-price inputmode="decimal" value="{{ f.offer_fee_private }}"></label>
+  <label>Provision (%) <input name="commission_private" inputmode="decimal" value="{{ f.commission_private }}"></label>
+  <h2>Händler</h2>
+  <label>Angebotsgebühr (€) <input name="offer_fee_shop" data-price inputmode="decimal" value="{{ f.offer_fee_shop }}"></label>
+  <label>Provision (%) <input name="commission_shop" inputmode="decimal" value="{{ f.commission_shop }}"></label>
+  <button type="submit">Speichern</button>
+</form>
+{% endblock %}

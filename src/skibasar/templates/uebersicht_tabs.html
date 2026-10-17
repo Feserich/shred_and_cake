@@ -1,0 +1,5 @@
+<nav class="tabs no-print" aria-label="Übersicht">
+  {% for key, href, label in [("verkaeufer", "/uebersicht/verkaeufer", "Verkäufer"), ("artikel", "/uebersicht/artikel", "Artikel"), ("verkaeufe", "/uebersicht/verkaeufe", "Verkäufe"), ("protokoll", "/uebersicht/protokoll", "Protokoll"), ("gesamt", "/gesamtabrechnung", "Gesamtabrechnung")] %}
+  <a href="{{ href }}" {% if tab == key %}aria-current="page"{% endif %}>{{ label }}</a>
+  {% endfor %}
+</nav>

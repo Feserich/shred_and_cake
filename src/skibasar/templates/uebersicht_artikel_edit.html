@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Artikel {{ a.number }} bearbeiten{% endblock %}
+{% block content %}
+{% set labels = {"available": "frei", "returned": "zurückgegeben", "withdrawn": "zurückgezogen"} %}
+<p><a href="/uebersicht/artikel">← Übersicht</a></p>
+<h1>Artikel Nr. {{ a.number }}</h1>
+<p class="muted">Verkäufer: {{ a.seller.display_name }}</p>
+{% if saved %}<div data-toast="ok">Gespeichert</div>{% endif %}
+{% if error %}<p class="error big" role="alert">{{ error }}</p>{% endif %}
+{% if a.seller.settled_at %}<p class="warn">Der Verkäufer ist abgerechnet. Änderungen brauchen die Admin-PIN; nur Texte sind änderbar.</p>{% endif %}
+<form method="post" data-enter-advance>
+  <div class="entry-form">
+    <label class="wide">Bezeichnung <input name="description" value="{{ a.description }}" required autofocus></label>
+    <label>Marke <input name="brand" value="{{ a.brand }}"></label>
+    <label>Größe <input name="size" value="{{ a.size }}"></label>
+    <label>Farbe <input name="color" value="{{ a.color }}"></label>
+    <label>Preis <input name="price" data-price inputmode="decimal" value="{{ a.price_cents|eur(false) }}" {{ "readonly" if a.status.value == "sold" }}></label>
+    <label>Status
+      {% if a.status.value == "sold" %}
+      <input value="verkauft" readonly><input type="hidden" name="status" value="sold">
+      {% else %}
+      <select name="status">{% for key, label in labels.items() %}<option value="{{ key }}" {{ "selected" if a.status.value == key }}>{{ label|capitalize }}</option>{% endfor %}</select>
+      {% endif %}
+    </label>
+  </div>
+  {% if a.seller.settled_at %}<label>Admin-PIN <input type="password" name="admin_pin" inputmode="numeric" autocomplete="off"></label>{% endif %}
+  <button type="submit">Speichern</button>
+</form>
+{% endblock %}

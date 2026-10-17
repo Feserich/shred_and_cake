@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Übersicht Artikel{% endblock %}
+{% block content %}
+{% set labels = {"available": "frei", "sold": "verkauft", "returned": "zurückgegeben", "withdrawn": "zurückgezogen"} %}
+{% set badge = {"available": "warn", "sold": "ok", "returned": "off", "withdrawn": "off"} %}
+<h1>Übersicht</h1>
+{% include "uebersicht_tabs.html" %}
+<form method="get" class="filter-row">
+  <input type="search" name="q" value="{{ q }}" placeholder="Nummer, Bezeichnung, Marke oder Verkäufer" aria-label="Suche">
+  <select name="status" aria-label="Status">
+    <option value="">Alle Status</option>
+    {% for key, label in labels.items() %}<option value="{{ key }}" {{ "selected" if status == key }}>{{ label|capitalize }}</option>{% endfor %}
+  </select>
+  <button type="submit">Filtern</button>
+</form>
+<div class="table-wrap"><table>
+  <tr><th class="num">Nr.</th><th>Bezeichnung</th><th>Marke</th><th>Größe</th><th class="num">Preis</th><th>Verkäufer</th><th>Status</th><th></th></tr>
+  {% for a in rows %}
+  <tr class="{{ 'off' if a.status.value in ('returned', 'withdrawn') }}">
+    <td class="num">{{ a.number }}</td><td>{{ a.description }}</td><td>{{ a.brand }}</td><td>{{ a.size }}</td>
+    <td class="num">{{ a.price_cents|eur }}</td><td>{{ a.seller.display_name }}</td>
+    <td><span class="badge {{ badge[a.status.value] }}">{{ labels[a.status.value] }}</span></td>
+    <td><a href="/uebersicht/artikel/{{ a.number }}">Bearbeiten</a></td>
+  </tr>
+  {% else %}
+  <tr><td colspan="8" class="muted">Keine Artikel gefunden.</td></tr>
+  {% endfor %}
+</table></div>
+{% if rows|length >= limit %}<p class="muted">Es werden nur die ersten {{ limit }} Zeilen angezeigt – bitte die Suche verfeinern.</p>{% endif %}
+{% endblock %}

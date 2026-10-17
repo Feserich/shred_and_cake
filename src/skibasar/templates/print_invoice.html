@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% set seller = p.seller %}
+{% set r = p.settlement %}
+{% block title %}Abrechnung {{ seller.display_name }}{% endblock %}
+{% block content %}
+<p class="no-print"><a href="/abholung/{{ seller.id }}">← Zurück</a> <button onclick="window.print()">Drucken</button></p>
+<h1>{{ event.name }} – Abrechnung</h1>
+<p>
+  <strong>{{ seller.display_name }}</strong><br>
+  {% if seller.address %}{{ seller.address }}<br>{% endif %}
+  Abgerechnet am {{ seller.settled_at.strftime("%d.%m.%Y %H:%M") }}
+</p>
+<table>
+  <tr><th class="num">Nr.</th><th>Bezeichnung</th><th class="num">Preis</th><th>Status</th></tr>
+  {% for a in seller.articles %}
+  <tr>
+    <td class="num">{{ a.number }}</td><td>{{ a.description }}</td><td class="num">{{ a.price_cents|eur }}</td>
+    <td>{{ {"sold": "verkauft", "returned": "zurückgegeben", "withdrawn": "zurückgezogen", "available": "nicht verkauft"}[a.status.value] }}</td>
+  </tr>
+  {% endfor %}
+</table>
+<table>
+  <tr><td>Verkauft ({{ p.sold|length }} Artikel)</td><td class="num">{{ r.sold_total_cents|eur }}</td></tr>
+  <tr><td>Provision</td><td class="num">− {{ r.commission_cents|eur }}</td></tr>
+  {% if r.open_offer_fee_cents %}<tr><td>Angebotsgebühr</td><td class="num">− {{ r.open_offer_fee_cents|eur }}</td></tr>{% endif %}
+  <tr><th>{{ "Verkäufer zahlt" if r.seller_pays else "Auszahlung" }}</th><th class="num">{{ (r.payout_cents|abs)|eur }}</th></tr>
+</table>
+<p class="muted">{{ fee_status }}</p>
+<p class="signature">Unterschrift Verkäufer: ______________________________ Datum: ______________</p>
+{% endblock %}

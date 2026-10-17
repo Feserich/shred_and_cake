@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+
+# Runtime data (database, journal, backups)
+data/
+
+# LibreOffice lock files
+.~lock.*#

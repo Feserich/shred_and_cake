@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Händler{% endblock %}
+{% block content %}
+<h1>Händler</h1>
+<table>
+  <tr><th>Name</th><th class="num">Von</th><th class="num">Bis</th><th class="num">Artikel</th><th></th></tr>
+  {% for shop in shops %}
+  <tr>
+    <td>{{ shop.name }}{% if shop.fee_exempt %} <span class="muted">(gebührenfrei)</span>{% endif %}</td>
+    <td class="num">{{ shop.number_range_start }}</td><td class="num">{{ shop.number_range_end }}</td>
+    <td class="num">{{ shop.articles|length }}</td>
+    <td><a href="/haendler/{{ shop.id }}">Öffnen</a></td>
+  </tr>
+  {% else %}
+  <tr><td colspan="5" class="muted">Noch keine Händler angelegt.</td></tr>
+  {% endfor %}
+</table>
+<h2>Neuer Händler</h2>
+{% include "shop_form.html" %}
+{% endblock %}

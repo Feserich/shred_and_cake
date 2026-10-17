@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{{ shop.name }}{% endblock %}
+{% block content %}
+<p><a href="/haendler">← Händler</a></p>
+<h1>{{ shop.name }}</h1>
+{% if message %}<p class="ok">{{ message }}</p>{% endif %}
+<h2>Artikel ({{ shop.articles|length }}, Summe {{ total|eur }})</h2>
+<form method="post" action="/haendler/{{ shop.id }}/import" enctype="multipart/form-data">
+  <label>CSV-Datei <input type="file" name="file" accept=".csv,text/csv" required></label>
+  <button type="submit">Vorschau</button>
+</form>
+<details>
+  <summary>Erwartete Spalten der CSV-Datei</summary>
+  <p>Semikolon-getrennt (<code>;</code>), erste Zeile = Kopfzeile. Groß-/Kleinschreibung, Umlaute und Sonderzeichen in den Spaltennamen spielen keine Rolle. Eine Zeile mit „Summe“ wird als Kontrollsumme geprüft.</p>
+  <table>
+    <tr><th>Feld</th><th>Pflicht</th><th>Akzeptierte Spaltennamen</th></tr>
+    <tr><td>Artikelnummer</td><td>ja</td><td>Artikelnummer, Nr, Nummer, Art.-Nr., Artikel-Nr, Lfd. Nr, Pos</td></tr>
+    <tr><td>Artikelname</td><td>ja</td><td>Artikelname, Name, Bezeichnung, Artikel, Beschreibung, Artikelbezeichnung</td></tr>
+    <tr><td>Preis</td><td>ja</td><td>Preis_1, Preis, VK, VK-Preis, Verkaufspreis, Preis EUR, Preis in EUR, Price</td></tr>
+    <tr><td>Ihre Artikelnummer</td><td>nein</td><td>Ihre Artikelnummer, Ihre Nr, Ihre Art.-Nr., Eigene Artikelnummer, Interne Nummer</td></tr>
+    <tr><td>Marke</td><td>nein</td><td>Marke, Mark, Hersteller, Brand</td></tr>
+    <tr><td>Größe</td><td>nein</td><td>Grösse, Größe, Gr., Länge, Size</td></tr>
+    <tr><td>Farbe</td><td>nein</td><td>Farbe, Color, Colour</td></tr>
+  </table>
+</details>
+{% if shop.articles %}
+<table>
+  <tr><th class="num">Nr.</th><th>Artikel</th><th>Marke</th><th>Größe</th><th class="num">Preis</th><th>Status</th></tr>
+  {% for a in shop.articles %}
+  <tr><td class="num">{{ a.number }}</td><td>{{ a.description }}</td><td>{{ a.brand }}</td><td>{{ a.size }}</td>
+      <td class="num">{{ a.price_cents|eur }}</td><td>{{ a.status.value }}</td></tr>
+  {% endfor %}
+</table>
+{% endif %}
+<h2>Stammdaten</h2>
+{% include "shop_form.html" %}
+{% endblock %}

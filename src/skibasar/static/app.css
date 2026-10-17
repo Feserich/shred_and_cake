@@ -1,0 +1,126 @@
+/* Design system on top of Pico.css. Status colors: ok = green, err = red, warn = amber, off = grey. */
+:root {
+  --pico-font-size: 112.5%;
+  --pico-primary: #0b5cad;
+  --pico-primary-background: #0b5cad;
+  --pico-primary-hover-background: #094a8c;
+  --pico-border-radius: .6rem;
+  --ok: #1b7a3a; --err: #b3261e; --warn: #9a5b00; --off: #6b7785;
+  --ok-bg: #e4f4e9; --err-bg: #fbe9e7; --warn-bg: #fff1d6;
+  --touch: 2.9rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --pico-primary: #5aa7f0; --pico-primary-background: #1f6fc2; --pico-primary-hover-background: #2b82dc;
+    --ok: #6fd28d; --err: #ff8a80; --warn: #ffc266; --off: #9aa8b5;
+    --ok-bg: #16301f; --err-bg: #3b1d1a; --warn-bg: #3a2b0f;
+  }
+}
+
+/* Top bar with the three working steps */
+.app-bar { border-bottom: 1px solid var(--pico-muted-border-color); margin-bottom: 1rem; }
+.app-bar nav { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1.5rem; padding-block: .5rem; }
+.app-bar .brand { font-weight: 700; text-decoration: none; font-size: 1.15rem; }
+.steps, .tools { display: flex; gap: .5rem; list-style: none; margin: 0; padding: 0; }
+.steps { flex: 1; }
+.steps li, .tools li { padding: 0; margin: 0; list-style: none; }
+.steps a, .tools a {
+  display: inline-flex; align-items: center; gap: .5rem; min-height: var(--touch);
+  padding: 0 1rem; border-radius: 999px; text-decoration: none;
+}
+.steps a[aria-current="page"], .tools a[aria-current="page"] {
+  background: var(--pico-primary-background); color: #fff;
+}
+.step-n {
+  display: inline-grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 50%;
+  background: var(--pico-muted-border-color); font-size: .85rem; font-weight: 700;
+}
+a[aria-disabled="true"] { opacity: .45; pointer-events: none; }
+[aria-current="page"] .step-n { background: #fff; color: var(--pico-primary-background); }
+
+/* Touch-friendly controls */
+input:not([type="checkbox"]):not([type="radio"]), select, textarea, button, [role="button"] { min-height: var(--touch); }
+button, [role="button"] { font-weight: 600; }
+button.danger { --pico-background-color: var(--err); --pico-border-color: var(--err); --pico-color: #fff; }
+.hint { font-size: .9rem; color: var(--pico-muted-color); margin-top: -.5rem; }
+details.help { margin-top: 2rem; }
+
+/* Status colors (messages and table rows) */
+.error, .ok, .warn { padding: .6rem .9rem; border-radius: var(--pico-border-radius); font-weight: 600; }
+.error { color: var(--err); background: var(--err-bg); }
+.ok { color: var(--ok); background: var(--ok-bg); }
+.warn { color: var(--warn); background: var(--warn-bg); }
+.muted { color: var(--pico-muted-color); }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tr.bad td { background: var(--err-bg); }
+tr.warn td { background: var(--warn-bg); }
+tr.off td { color: var(--off); }
+.badge { display: inline-block; padding: .1rem .6rem; border-radius: 999px; font-size: .85rem; font-weight: 600; }
+.badge.ok { background: var(--ok-bg); color: var(--ok); padding: .1rem .6rem; }
+.badge.warn { background: var(--warn-bg); color: var(--warn); padding: .1rem .6rem; }
+.badge.off { background: var(--pico-muted-border-color); color: var(--off); }
+
+/* Big number display (next article number, running totals) */
+p.next-number { font-size: 1.25rem; }
+p.next-number strong { font-size: 3.5rem; line-height: 1; font-variant-numeric: tabular-nums; color: var(--pico-primary); }
+.entry-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 0 1rem; }
+.entry-form .wide { grid-column: 1 / -1; }
+.entry-form button { grid-column: 1 / -1; }
+input[data-price] { font-size: 1.4rem; font-variant-numeric: tabular-nums; text-align: right; }
+.signature { margin-top: 3rem; }
+.table-wrap { overflow-x: auto; }
+
+/* Success flash on the page that was just saved, toasts and confirm dialog */
+#toasts { position: fixed; z-index: 50; left: 50%; bottom: 1rem; transform: translateX(-50%);
+  display: grid; gap: .5rem; width: min(32rem, calc(100vw - 2rem)); }
+.toast { padding: .8rem 1rem; border-radius: var(--pico-border-radius); font-weight: 600;
+  box-shadow: 0 .4rem 1.2rem rgb(0 0 0 / .25); animation: toast-in .2s ease-out; }
+.toast.ok { background: var(--ok); color: #fff; }
+.toast.err { background: var(--err); color: #fff; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(.6rem); } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+dialog#confirm-dialog article { margin: 0; max-width: 28rem; }
+dialog#confirm-dialog footer { display: flex; gap: .75rem; justify-content: flex-end; }
+dialog#confirm-dialog footer button { width: auto; margin: 0; }
+
+@media (max-width: 40rem) {
+  table { display: block; overflow-x: auto; }
+  .steps { order: 3; flex-basis: 100%; justify-content: space-between; }
+  .steps a { padding: 0 .6rem; }
+}
+@media print {
+  .no-print { display: none !important; }
+  :root { --pico-color: #000; --pico-background-color: #fff; --pico-font-size: 100%; }
+  body { font-size: 11pt; background: #fff; color: #000; }
+  main { max-width: none; padding: 0; }
+  table { display: table; }
+}
+
+/* Kasse */
+.scan-row { display: grid; grid-template-columns: 1fr auto; gap: 0 1rem; align-items: end; }
+.scan-row input { font-size: 2rem; font-variant-numeric: tabular-nums; }
+.error.big, .ok.big { font-size: 1.4rem; padding: 1rem; }
+.total { font-size: 1.25rem; text-align: right; }
+.total strong { font-size: 2.5rem; font-variant-numeric: tabular-nums; }
+.change strong { font-size: 2rem; }
+button.big-action { font-size: 1.3rem; }
+
+/* Übersicht */
+.tabs { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+.tabs a { display: inline-flex; align-items: center; min-height: var(--touch); padding: 0 1rem; border-radius: 999px; text-decoration: none; border: 1px solid var(--pico-muted-border-color); }
+.tabs a[aria-current="page"] { background: var(--pico-primary-background); color: #fff; border-color: transparent; }
+.filter-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .5rem 1rem; align-items: end; }
+.filter-row input, .filter-row select, .filter-row button { margin-bottom: 0; }
+.print-only { display: none; }
+@media print { .print-only { display: block; } }
+td code { white-space: normal; word-break: break-all; font-size: .8rem; }
+
+/* Phones: Telefon page, login */
+.qr svg { width: min(18rem, 100%); height: auto; display: block; }
+.phone-url { font-size: 1.4rem; word-break: break-all; }
+.phone-pin { font-size: 2rem; letter-spacing: .15em; font-variant-numeric: tabular-nums; }
+@media (max-width: 40rem) {
+  .tools { flex-wrap: wrap; }
+  .entry-form, .scan-row { grid-template-columns: 1fr; }
+  main.container { padding-inline: .75rem; }
+}

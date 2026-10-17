@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Telefon verbinden – Skibasar{% endblock %}
+{% block content %}
+<h1>Telefon verbinden</h1>
+{% if url %}
+<p class="hint">Telefon und Rechner müssen im selben WLAN sein. Kamera auf den Code halten oder die Adresse eintippen.</p>
+<div class="qr" role="img" aria-label="QR-Code für {{ url }}">{{ qr | safe }}</div>
+<p class="phone-url"><strong>{{ url }}</strong></p>
+{% if pin %}
+<p>PIN für Telefone: <strong class="phone-pin">{{ pin }}</strong></p>
+{% elif has_pin %}
+<p class="muted">Die PIN wird nur am Hauptrechner angezeigt.</p>
+{% else %}
+<p class="warn">Es ist keine PIN gesetzt: Jeder im WLAN kann zugreifen.</p>
+{% endif %}
+{% else %}
+<p class="warn">Der Rechner ist nur für sich selbst erreichbar.</p>
+<p>Zum Verbinden von Telefonen das Programm mit <code>skibasar --lan</code> starten (und mit WLAN verbunden sein).</p>
+{% endif %}
+{% endblock %}

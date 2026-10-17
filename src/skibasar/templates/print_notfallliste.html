@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Notfallliste{% endblock %}
+{% block content %}
+<p class="no-print"><a href="/sicherung">← Zurück</a> <button onclick="window.print()">Drucken</button></p>
+<h1>{{ event.name }} – Notfallliste</h1>
+<p>Alle Artikel nach Nummer. Bei Ausfall der Software: Verkaufte Nummern abhaken und Summe von Hand bilden.</p>
+<table>
+  <tr><th class="num">Nr.</th><th>Bezeichnung</th><th>Marke</th><th>Größe</th><th>Verkäufer</th><th class="num">Preis</th><th>Verkauft</th></tr>
+  {% for a in articles %}
+  <tr><td class="num">{{ a.number }}</td><td>{{ a.description }}</td><td>{{ a.brand }}</td><td>{{ a.size }}</td>
+      <td>{{ a.seller.display_name }}</td><td class="num">{{ a.price_cents|eur }}</td><td>☐</td></tr>
+  {% endfor %}
+  <tr><th colspan="5">{{ articles|length }} Artikel</th><th class="num">{{ total|eur }}</th><th></th></tr>
+</table>
+{% endblock %}

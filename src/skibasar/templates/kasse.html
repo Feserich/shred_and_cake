@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Kasse{% endblock %}
+{% block content %}
+<h1>Kasse</h1>
+<form method="post" action="/kasse/artikel" id="cart-form">
+  {% for a in articles %}<input type="hidden" name="cart" value="{{ a.number }}">{% endfor %}
+  <input type="hidden" name="total" value="{{ total }}">
+  {% if error %}<p class="error big" role="alert" data-beep>{{ error }}</p>{% endif %}
+  {% if added is not none and not error %}<div data-toast="ok">Nr. {{ added }} hinzugefügt.</div>{% endif %}
+  <div class="scan-row">
+    <label>Artikelnummer
+      <input name="number" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" autofocus required>
+    </label>
+    <button type="submit">Hinzufügen</button>
+  </div>
+  {% if articles %}
+  <div class="table-wrap"><table>
+    <tr><th class="num">Nr.</th><th>Bezeichnung</th><th class="num">Preis</th><th></th></tr>
+    {% for art in articles %}
+    <tr>
+      <td class="num">{{ art.number }}</td>
+      <td>{{ art.description }}{% if art.brand %} <span class="muted">{{ art.brand }}</span>{% endif %}{% if art.size %} <span class="muted">· {{ art.size }}</span>{% endif %}</td>
+      <td class="num">{{ art.price_cents|eur }}</td>
+      <td><button type="submit" class="secondary outline" formaction="/kasse/entfernen" name="remove" value="{{ art.number }}" formnovalidate aria-label="Nr. {{ art.number }} entfernen">✕</button></td>
+    </tr>
+    {% endfor %}
+  </table></div>
+  <p class="total">Summe <strong>{{ total|eur }}</strong> <span class="muted">({{ articles|length }} Artikel)</span></p>
+  <label>Gegeben (€, optional)
+    <input name="given" data-price inputmode="decimal" autocomplete="off" placeholder="0,00"
+           onkeydown="if(event.key==='Enter')event.preventDefault()"
+           hx-post="/kasse/rueckgeld" hx-trigger="input changed delay:200ms" hx-include="closest form" hx-target="#change">
+  </label>
+  <div id="change" aria-live="polite"></div>
+  <div class="grid">
+    <button type="submit" class="secondary outline" formaction="/kasse/entfernen" name="remove" value="last" formnovalidate>Letzten entfernen</button>
+    <button type="submit" class="big-action" formaction="/kasse/abschluss" formnovalidate>Verkauf abschließen</button>
+  </div>
+  {% else %}
+  <p class="muted empty">Noch keine Artikel. Nummer vom Kleber eintippen und Enter drücken.</p>
+  {% endif %}
+</form>
+<p>
+  {% if last_sale %}<a href="/kasse/verkauf/{{ last_sale.id }}">Letzter Verkauf (Nr. {{ last_sale.id }})</a> · {% endif %}
+  <a href="/kasse/verkaeufe">Alle Verkäufe / Storno</a>
+</p>
+{% endblock %}
+{% block help %}
+<details class="help"><summary>Hilfe</summary>
+<p>Artikelnummer eintippen und <kbd>Enter</kbd>: der Artikel erscheint mit Preis. Wenn alle Artikel erfasst sind, „Verkauf abschließen“. Erst dann ist der Verkauf gespeichert. Rote Meldungen bedeuten: Nummer unbekannt, schon verkauft oder zurückgezogen – den Artikel nicht verkaufen und im Zweifel nachfragen.</p>
+</details>
+{% endblock %}

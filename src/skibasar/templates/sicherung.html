@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Sicherung{% endblock %}
+{% block content %}
+<h1>Sicherung</h1>
+{% if message %}<p class="ok" role="status">{{ message }}</p>{% endif %}
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+<p>Jede Änderung wird sofort in einer Protokolldatei gespeichert. Zusätzlich werden alle 5 Minuten Tabellen (CSV) und eine Datenbank-Kopie angelegt.</p>
+<ul>
+  <li>Datenordner: <code>{{ data_dir }}</code></li>
+  <li>Protokollzeilen (journal.csv): {{ journal_lines }}</li>
+  <li>Letzte Tabellen-Sicherung: {{ last_snapshot.strftime("%d.%m.%Y %H:%M:%S") if last_snapshot else "noch keine" }}</li>
+  <li>Letzte Datenbank-Kopie: {{ last_backup or "noch keine" }} ({{ backup_count }} gespeichert)</li>
+</ul>
+<form method="post" action="/sicherung/jetzt"><button type="submit">Jetzt sichern</button></form>
+<h2>Exportieren</h2>
+<form method="post" action="/sicherung/export">
+  <label>Ordner oder USB-Stick (Pfad)
+    <input name="folder" placeholder="z. B. E:\ oder /media/usb" autocomplete="off">
+  </label>
+  <button type="submit">In Ordner exportieren</button>
+</form>
+<p><a role="button" class="secondary" href="/sicherung/export.zip">Als ZIP herunterladen</a></p>
+<h2>Notfallliste</h2>
+<p>Vor Verkaufsbeginn ausdrucken: So kann die Kasse im Notfall auf Papier weiterlaufen.</p>
+<p><a role="button" href="/notfallliste">Notfallliste anzeigen / drucken</a></p>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}{{ seller.display_name }}{% endblock %}
+{% block content %}
+<p><a href="/annahme">← Annahme</a></p>
+<h1>{{ seller.display_name }}</h1>
+<p class="muted">{{ fee_status }}</p>
+{% if seller.settled_at %}
+<p class="error">Dieser Verkäufer ist bereits abgerechnet.</p>
+{% else %}
+<p class="next-number">Nächste Nummer: <strong>{{ next_number }}</strong></p>
+<p class="hint">Kleber mit dieser Nummer auf den Artikel kleben, dann Daten eingeben. Mit Enter geht es zum nächsten Feld.</p>
+{% if saved %}<div data-toast="ok">Artikel gespeichert.</div>{% endif %}
+{% if undone %}<div data-toast="ok">Letzter Artikel wurde zurückgenommen.</div>{% endif %}
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+<form method="post" action="/annahme/{{ seller.id }}/artikel" class="entry-form" data-enter-advance>
+  <input type="hidden" name="expected_number" value="{{ next_number }}">
+  <label class="wide">Bezeichnung <input name="description" value="{{ a.description }}" placeholder="z. B. Handschuhe" required autofocus></label>
+  <label>Marke <input name="brand" value="{{ a.brand }}" list="brands" autocomplete="off"></label>
+  <label>Größe <input name="size" value="{{ a.size }}" list="sizes" autocomplete="off"></label>
+  <label>Farbe <input name="color" value="{{ a.color }}" list="colors" autocomplete="off"></label>
+  <label>Preis (€) <input name="price" data-price inputmode="decimal" value="{{ a.price }}" placeholder="0,00" required></label>
+  <button type="submit">Artikel speichern</button>
+  <datalist id="brands">{% for v in suggest.brand %}<option value="{{ v }}">{% endfor %}</datalist>
+  <datalist id="sizes">{% for v in suggest.size %}<option value="{{ v }}">{% endfor %}</datalist>
+  <datalist id="colors">{% for v in suggest.color %}<option value="{{ v }}">{% endfor %}</datalist>
+</form>
+{% if can_undo %}
+<form method="post" action="/annahme/{{ seller.id }}/artikel/zurueck" data-confirm="Den zuletzt erfassten Artikel wirklich zurücknehmen? Die Nummer wird wieder frei.">
+  <button type="submit" class="secondary outline">Letzten Artikel zurücknehmen</button>
+</form>
+{% endif %}
+{% endif %}
+<h2>Artikel ({{ seller.articles|length }}, Summe {{ total|eur }})</h2>
+{% if seller.articles %}
+<p><a href="/annahme/{{ seller.id }}/liste" target="_blank">Verkäuferliste drucken</a></p>
+<div class="table-wrap"><table>
+  <tr><th class="num">Nr.</th><th>Bezeichnung</th><th>Marke</th><th>Größe</th><th>Farbe</th><th class="num">Preis</th></tr>
+  {% for art in seller.articles|reverse %}
+  <tr><td class="num">{{ art.number }}</td><td>{{ art.description }}</td><td>{{ art.brand }}</td>
+      <td>{{ art.size }}</td><td>{{ art.color }}</td><td class="num">{{ art.price_cents|eur }}</td></tr>
+  {% endfor %}
+</table></div>
+{% endif %}
+<h2>Stammdaten</h2>
+{% if seller_error %}<p class="error">{{ seller_error }}</p>{% endif %}
+{% with action="/annahme/" ~ seller.id, button="Speichern" %}{% include "annahme_seller_form.html" %}{% endwith %}
+{% endblock %}
+{% block help %}
+<details class="help"><summary>Hilfe</summary>
+<p>Nummer vom Bildschirm auf den Kleber schreiben, Artikel eingeben, mit <kbd>Enter</kbd> bis zum Preis weitergehen und speichern – dann erscheint die nächste Nummer. Ein Tippfehler im zuletzt erfassten Artikel lässt sich mit der Schaltfläche „Zurücknehmen“ unter dem Formular korrigieren.</p>
+</details>
+{% endblock %}

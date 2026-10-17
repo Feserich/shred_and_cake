@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Übersicht Verkäufe{% endblock %}
+{% block content %}
+<h1>Übersicht</h1>
+{% include "uebersicht_tabs.html" %}
+<form method="get" class="filter-row">
+  <select name="status" aria-label="Status">
+    <option value="">Alle Verkäufe</option>
+    <option value="gueltig" {{ "selected" if status == "gueltig" }}>Gültig</option>
+    <option value="storniert" {{ "selected" if status == "storniert" }}>Storniert</option>
+  </select>
+  <button type="submit">Filtern</button>
+</form>
+<div class="table-wrap"><table>
+  <tr><th class="num">Nr.</th><th>Zeit</th><th>Artikel</th><th class="num">Summe</th><th>Status</th><th></th></tr>
+  {% for sale in rows %}
+  <tr class="{{ 'off' if sale.cancelled }}">
+    <td class="num">{{ sale.id }}</td>
+    <td>{{ sale.created_at.strftime("%d.%m.%Y %H:%M") }}</td>
+    <td>{{ sale.articles|map(attribute="number")|join(", ") }}</td>
+    <td class="num">{{ sale.total_cents|eur }}</td>
+    <td>{% if sale.cancelled %}<span class="badge off">storniert</span>{% else %}<span class="badge ok">gültig</span>{% endif %}</td>
+    <td><a href="/kasse/verkauf/{{ sale.id }}">Öffnen</a></td>
+  </tr>
+  {% else %}
+  <tr><td colspan="6" class="muted">Noch keine Verkäufe.</td></tr>
+  {% endfor %}
+</table></div>
+{% if rows|length >= limit %}<p class="muted">Es werden nur die letzten {{ limit }} Zeilen angezeigt.</p>{% endif %}
+{% endblock %}

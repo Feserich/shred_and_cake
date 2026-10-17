@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Skibasar{% endblock %}</title>
+  <link rel="stylesheet" href="/static/pico.min.css">
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/htmx.min.js" defer></script>
+  <script src="/static/alpine.min.js" defer></script>
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  {% set on_laptop = request.client and request.client.host in ("127.0.0.1", "::1", "localhost") %}
+  {% set steps = [("/annahme", "1", "Annahme", true), ("/kasse", "2", "Kasse", true)] + ([("/abholung", "3", "Abholung", true), ("/uebersicht", "4", "Übersicht", true)] if on_laptop else []) %}
+  <header class="app-bar no-print">
+    <nav class="container">
+      <a class="brand" href="/">⛷ Skibasar</a>
+      <ol class="steps">
+        {% for href, n, label, ready in steps %}
+        <li>{% if ready %}<a href="{{ href }}" {% if request.url.path.startswith(href) %}aria-current="page"{% endif %}><span class="step-n">{{ n }}</span>{{ label }}</a>{% else %}<a aria-disabled="true" title="Noch nicht verfügbar"><span class="step-n">{{ n }}</span>{{ label }}</a>{% endif %}</li>
+        {% endfor %}
+      </ol>
+      {% if on_laptop %}
+      <ul class="tools">
+        <li><a href="/haendler" {% if request.url.path.startswith("/haendler") %}aria-current="page"{% endif %}>Händler</a></li>
+        <li><a href="/telefon" {% if request.url.path.startswith("/telefon") %}aria-current="page"{% endif %}>Telefon</a></li>
+        <li><a href="/sicherung" {% if request.url.path.startswith("/sicherung") or request.url.path.startswith("/notfallliste") %}aria-current="page"{% endif %}>Sicherung</a></li>
+        <li><a href="/einstellungen" {% if request.url.path.startswith("/einstellungen") %}aria-current="page"{% endif %}>Einstellungen</a></li>
+      </ul>
+      {% endif %}
+    </nav>
+  </header>
+  <main class="container">
+    {% block content %}{% endblock %}
+    {% block help %}{% endblock %}
+  </main>
+  <div id="toasts" class="no-print" role="status" aria-live="polite"></div>
+  <dialog id="confirm-dialog" class="no-print">
+    <article>
+      <p id="confirm-text"></p>
+      <footer>
+        <button type="button" class="secondary" id="confirm-no">Abbrechen</button>
+        <button type="button" id="confirm-yes">Ja, bestätigen</button>
+      </footer>
+    </article>
+  </dialog>
+</body>
+</html>

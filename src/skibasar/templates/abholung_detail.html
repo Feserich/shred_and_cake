@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% set seller = p.seller %}
+{% set r = p.settlement %}
+{% block title %}Abrechnung {{ seller.display_name }}{% endblock %}
+{% block content %}
+<p><a href="/abholung">← Abholung</a></p>
+<h1>{{ seller.display_name }}</h1>
+{% if error %}<p class="error big" role="alert">{{ error }}</p>{% endif %}
+{% if seller.settled_at %}
+<p class="ok">Abgerechnet am {{ seller.settled_at.strftime("%d.%m.%Y %H:%M") }}.</p>
+{% else %}
+<p class="warn">Vorschau – noch nichts gespeichert. Erst „Abrechnung abschließen“ speichert.</p>
+{% endif %}
+
+<h2>Verkauft ({{ p.sold|length }})</h2>
+<div class="table-wrap"><table>
+  <tr><th class="num">Nr.</th><th>Bezeichnung</th><th class="num">Preis</th></tr>
+  {% for a in p.sold %}
+  <tr><td class="num">{{ a.number }}</td><td>{{ a.description }}</td><td class="num">{{ a.price_cents|eur }}</td></tr>
+  {% else %}
+  <tr><td colspan="3" class="muted">Nichts verkauft.</td></tr>
+  {% endfor %}
+</table></div>
+
+<form method="post" action="/abholung/{{ seller.id }}/abschluss"
+      data-confirm="Abrechnung für {{ seller.display_name }} abschließen? {{ 'Der Verkäufer zahlt' if r.seller_pays else 'Auszahlung:' }} {{ (r.payout_cents|abs)|eur }}. Danach sind keine Verkäufe oder Stornos für diesen Verkäufer mehr möglich.">
+  <input type="hidden" name="expected_payout" value="{{ r.payout_cents }}">
+  {% if p.unsold or p.other %}
+  <h2>Nicht verkauft ({{ p.unsold|length + p.other|length }})</h2>
+  <div class="table-wrap"><table>
+    <tr><th>{% if not seller.settled_at %}<label><input type="checkbox" aria-label="Alle zurückgegeben"
+        onclick="this.closest('table').querySelectorAll('input[name=returned]').forEach(c => c.checked = this.checked)"> Alle</label>{% else %}Zurück{% endif %}</th><th class="num">Nr.</th><th>Bezeichnung</th><th class="num">Preis</th><th>Status</th></tr>
+    {% for a in p.unsold %}
+    <tr>
+      <td>{% if seller.settled_at %}–{% else %}<input type="checkbox" name="returned" value="{{ a.number }}" aria-label="Nr. {{ a.number }} zurückgegeben">{% endif %}</td>
+      <td class="num">{{ a.number }}</td><td>{{ a.description }}</td><td class="num">{{ a.price_cents|eur }}</td><td></td>
+    </tr>
+    {% endfor %}
+    {% for a in p.other %}
+    <tr class="off">
+      <td></td><td class="num">{{ a.number }}</td><td>{{ a.description }}</td><td class="num">{{ a.price_cents|eur }}</td>
+      <td>{{ "zurückgegeben" if a.status.value == "returned" else "zurückgezogen" }}</td>
+    </tr>
+    {% endfor %}
+  </table></div>
+  {% endif %}
+
+  <h2>Abrechnung</h2>
+  <table>
+    <tr><td>Verkauft</td><td class="num">{{ r.sold_total_cents|eur }}</td></tr>
+    <tr><td>Provision</td><td class="num">− {{ r.commission_cents|eur }}</td></tr>
+    {% if r.open_offer_fee_cents %}<tr><td>Offene Angebotsgebühr</td><td class="num">− {{ r.open_offer_fee_cents|eur }}</td></tr>{% endif %}
+    <tr><th>{{ "Verkäufer zahlt" if r.seller_pays else "Auszahlung" }}</th><th class="num big">{{ (r.payout_cents|abs)|eur }}</th></tr>
+  </table>
+  <p class="muted">{{ fee_status }}</p>
+
+  {% if seller.settled_at %}
+  <a role="button" href="/abholung/{{ seller.id }}/rechnung" target="_blank">Rechnung drucken</a>
+  {% else %}
+  <button type="submit" class="big-action">Abrechnung abschließen</button>
+  {% endif %}
+</form>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Gesamtabrechnung{% endblock %}
+{% block content %}
+{% set names = {"private": "Privatverkäufer", "shop": "Händler"} %}
+<div class="no-print">
+  <h1>Übersicht</h1>
+  {% include "uebersicht_tabs.html" %}
+  <p><button type="button" onclick="window.print()">Drucken</button></p>
+</div>
+<h1 class="print-only">{{ event.name }}</h1>
+<h2>Gesamtabrechnung</h2>
+<p class="{{ 'ok' if r.reconciles else 'error' }}" role="status">
+  {% if r.reconciles %}Die Zahlen stimmen: Verkäufe = Auszahlungen + Provision + abgezogene Gebühren (+ noch nicht abgerechnet).{% else %}Achtung: Die Zahlen gehen nicht auf – bitte prüfen!{% endif %}
+</p>
+
+<h3>Verkäufe</h3>
+<table>
+  <tr><td>Gültige Verkäufe</td><td class="num">{{ r.sales_count }}</td></tr>
+  <tr><td>Stornierte Verkäufe</td><td class="num">{{ r.cancelled_count }}</td></tr>
+  <tr><th>Umsatz gesamt</th><th class="num">{{ r.sales_total_cents|eur }}</th></tr>
+  <tr><td>davon bei abgerechneten Verkäufern</td><td class="num">{{ r.settled_sold_cents|eur }}</td></tr>
+  <tr><td>davon noch nicht abgerechnet</td><td class="num">{{ r.open_sold_cents|eur }}</td></tr>
+</table>
+
+<h3>Abrechnung der abgerechneten Verkäufer</h3>
+<div class="table-wrap"><table>
+  <tr><th></th>{% for t, g in r.groups.items() %}<th class="num">{{ names[t.value] }}</th>{% endfor %}<th class="num">Gesamt</th></tr>
+  <tr><td>Verkäufer (abgerechnet / alle)</td>{% for g in r.groups.values() %}<td class="num">{{ g.settled }} / {{ g.sellers }}</td>{% endfor %}<td class="num">{{ r.groups.values()|sum(attribute="settled") }} / {{ r.groups.values()|sum(attribute="sellers") }}</td></tr>
+  <tr><td>Verkauft</td>{% for g in r.groups.values() %}<td class="num">{{ g.sold_cents|eur }}</td>{% endfor %}<td class="num">{{ r.settled_sold_cents|eur }}</td></tr>
+  <tr><td>Provision</td>{% for g in r.groups.values() %}<td class="num">{{ g.commission_cents|eur }}</td>{% endfor %}<td class="num">{{ r.commission_cents|eur }}</td></tr>
+  <tr><td>Bei Abrechnung abgezogene Gebühren</td>{% for g in r.groups.values() %}<td class="num">{{ g.deducted_fee_cents|eur }}</td>{% endfor %}<td class="num">{{ r.deducted_fee_cents|eur }}</td></tr>
+  <tr><th>Auszahlungen</th>{% for g in r.groups.values() %}<th class="num">{{ g.payout_cents|eur }}</th>{% endfor %}<th class="num">{{ r.payout_cents|eur }}</th></tr>
+</table></div>
+
+<h3>Einnahmen des Vereins</h3>
+<table>
+  <tr><td>Provision</td><td class="num">{{ r.commission_cents|eur }}</td></tr>
+  <tr><td>Gebühren bei der Annahme bezahlt</td><td class="num">{{ r.fee_at_entry_cents|eur }}</td></tr>
+  <tr><td>Gebühren bei der Abrechnung abgezogen</td><td class="num">{{ r.deducted_fee_cents|eur }}</td></tr>
+  <tr><th>Gesamt</th><th class="num">{{ r.club_income_cents|eur }}</th></tr>
+</table>
+
+<h3>Artikel</h3>
+<table>
+  <tr><td>Verkauft</td><td class="num">{{ r.articles_by_status.sold }}</td></tr>
+  <tr><td>Nicht verkauft (frei)</td><td class="num">{{ r.articles_by_status.available }}</td></tr>
+  <tr><td>Zurückgegeben</td><td class="num">{{ r.articles_by_status.returned }}</td></tr>
+  <tr><td>Zurückgezogen</td><td class="num">{{ r.articles_by_status.withdrawn }}</td></tr>
+</table>
+
+<h3>Noch nicht abgeholt ({{ r.open_sellers|length }})</h3>
+<table>
+  <tr><th>Name</th><th>Art</th><th class="num">Verkauft</th><th class="num">Auszahlung</th></tr>
+  {% for o in r.open_sellers %}
+  <tr><td>{{ o.seller.display_name }}</td><td>{{ names[o.seller.type.value] }}</td><td class="num">{{ o.sold_cents|eur }}</td><td class="num">{{ o.payout_cents|eur }}</td></tr>
+  {% else %}
+  <tr><td colspan="4" class="muted">Alle Verkäufer sind abgerechnet.</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

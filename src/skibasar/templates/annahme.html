@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Annahme{% endblock %}
+{% block content %}
+<h1>Annahme</h1>
+<form method="get" action="/annahme">
+  <label>Verkäufer suchen (Name oder Artikelnummer) <input type="search" name="q" value="{{ q }}" placeholder="Name oder Artikelnummer" autofocus></label>
+  <button type="submit">Suchen</button>
+</form>
+<div class="table-wrap"><table>
+  <tr><th>Name</th><th class="num">Artikel</th><th>Status</th><th></th></tr>
+  {% for seller in sellers %}
+  <tr>
+    <td>{{ seller.display_name }}</td>
+    <td class="num">{{ seller.articles|length }}</td>
+    <td>{% if seller.settled_at %}abgerechnet{% endif %}</td>
+    <td><a href="/annahme/{{ seller.id }}">Öffnen</a></td>
+  </tr>
+  {% else %}
+  <tr><td colspan="4" class="muted">Keine Verkäufer gefunden.</td></tr>
+  {% endfor %}
+</table></div>
+<h2>Neuer Verkäufer</h2>
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+{% with action="/annahme/verkaeufer", button="Verkäufer anlegen" %}{% include "annahme_seller_form.html" %}{% endwith %}
+{% endblock %}
+{% block help %}
+<details class="help"><summary>Hilfe</summary>
+<p>Zuerst den Verkäufer suchen. Ist er noch nicht erfasst, unten „Neuer Verkäufer“ ausfüllen. Danach können die Artikel eingegeben werden.</p>
+</details>
+{% endblock %}
