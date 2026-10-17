@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from ..models import Event, Seller, SellerType
-from ..money import MoneyError, parse_eur
+from ..money import PRICE_WARN_CENTS, MoneyError, parse_eur
 from ..services import annahme
 from ..services.annahme import AnnahmeError
 from ..services.numbering import next_private_number
@@ -95,6 +95,7 @@ def _detail_ctx(s: Session, seller: Seller, **extra) -> dict:
         "saved": False,
         "undone": False,
         "error": None,
+        "price_warning": None,
         "seller_error": None,
         **extra,
     }
@@ -131,6 +132,10 @@ async def article_create(request: Request, seller_id: int, s: Session = Depends(
     form = {k: str(data.get(k, "")) for k in _ARTICLE_FIELDS}
     expected = str(data.get("expected_number", "")).strip()
     try:
+        price_cents = parse_eur(form["price"])
+        if price_cents > PRICE_WARN_CENTS and "price_ok" not in data:
+            ctx = _detail_ctx(s, seller, f=_seller_form(seller), a=form, price_warning=price_cents)
+            return templates.TemplateResponse(request, "annahme_seller.html", ctx)
         annahme.add_article(
             s,
             seller,
@@ -139,7 +144,7 @@ async def article_create(request: Request, seller_id: int, s: Session = Depends(
             brand=form["brand"],
             size=form["size"],
             color=form["color"],
-            price_cents=parse_eur(form["price"]),
+            price_cents=price_cents,
             client=_client(request),
         )
     except (AnnahmeError, MoneyError) as e:

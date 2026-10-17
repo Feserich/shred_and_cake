@@ -27,12 +27,13 @@
   <input type="hidden" name="expected_payout" value="{{ r.payout_cents }}">
   {% if p.unsold or p.other %}
   <h2>Nicht verkauft ({{ p.unsold|length + p.other|length }})</h2>
+  {% if p.unsold and not seller.settled_at %}<p class="hint">Angehakt = geht an den Verkäufer zurück. Haken nur entfernen, wenn ein Artikel nicht mitgegeben werden kann (z. B. nicht auffindbar).</p>{% endif %}
   <div class="table-wrap"><table>
-    <tr><th>{% if not seller.settled_at %}<label><input type="checkbox" aria-label="Alle zurückgegeben"
+    <tr><th>{% if not seller.settled_at %}<label><input type="checkbox" aria-label="Alle zurückgegeben" checked
         onclick="this.closest('table').querySelectorAll('input[name=returned]').forEach(c => c.checked = this.checked)"> Alle</label>{% else %}Zurück{% endif %}</th><th class="num">Nr.</th><th>Bezeichnung</th><th class="num">Preis</th><th>Status</th></tr>
     {% for a in p.unsold %}
     <tr>
-      <td>{% if seller.settled_at %}–{% else %}<input type="checkbox" name="returned" value="{{ a.number }}" aria-label="Nr. {{ a.number }} zurückgegeben">{% endif %}</td>
+      <td>{% if seller.settled_at %}–{% else %}<input type="checkbox" name="returned" value="{{ a.number }}" checked aria-label="Nr. {{ a.number }} zurückgegeben">{% endif %}</td>
       <td class="num">{{ a.number }}</td><td>{{ a.description }}</td><td class="num">{{ a.price_cents|eur }}</td><td></td>
     </tr>
     {% endfor %}

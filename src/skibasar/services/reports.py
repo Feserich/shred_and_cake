@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from ..models import Article, ArticleStatus, Event, Sale, Seller, SellerType
+from ..models import Article, ArticleStatus, Sale, Seller, SellerType
 from . import abholung
 
 
@@ -73,7 +73,6 @@ class Report:
 
 
 def build(s: Session) -> Report:
-    event = s.get(Event, 1)
     sales_total = s.scalar(
         select(func.coalesce(func.sum(Sale.total_cents), 0)).where(Sale.cancelled.is_(False))
     )
@@ -89,9 +88,8 @@ def build(s: Session) -> Report:
     for seller in s.scalars(select(Seller).order_by(Seller.name, Seller.id)):
         g = groups[seller.type]
         g.sellers += 1
-        rules = abholung.rules_for(event, seller)
         if seller.offer_fee_paid_at_entry and not seller.fee_exempt:
-            g.fee_at_entry_cents += rules.offer_fee_cents
+            g.fee_at_entry_cents += seller.offer_fee_paid_cents or 0
         p = abholung.preview(s, seller)
         r = p.settlement
         if seller.settled_at is not None:

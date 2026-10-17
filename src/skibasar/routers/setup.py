@@ -3,7 +3,7 @@
 import secrets
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Form, Request, UploadFile
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
@@ -11,7 +11,14 @@ from sqlalchemy.orm import Session
 
 from ..csv_import import parse_shop_csv, validate
 from ..models import Article, Event, Seller, SellerType
-from ..money import MoneyError, format_eur, format_percent_bp, parse_eur, parse_percent_bp
+from ..money import (
+    MAX_COMMISSION_BP,
+    MoneyError,
+    format_eur,
+    format_percent_bp,
+    parse_eur,
+    parse_percent_bp,
+)
 from ..services import shops
 from ..services.numbering import RangeError
 
@@ -78,6 +85,8 @@ def settings_save(
         }
         if min(values["offer_fee_private_cents"], values["offer_fee_shop_cents"]) < 0:
             raise MoneyError("Gebühren dürfen nicht negativ sein")
+        if max(values["commission_private_bp"], values["commission_shop_bp"]) > MAX_COMMISSION_BP:
+            raise MoneyError("Die Provision darf höchstens 100 % sein")
         if values["private_number_start"] > 0:
             used = s.scalar(
                 select(func.min(Article.number))
@@ -172,8 +181,6 @@ async def shop_create(request: Request, s: Session = Depends(get_session)):
 
 
 def _get_shop(s: Session, shop_id: int) -> Seller:
-    from fastapi import HTTPException
-
     shop = s.get(Seller, shop_id)
     if shop is None or shop.type != SellerType.shop:
         raise HTTPException(404, "Händler nicht gefunden")
@@ -213,6 +220,8 @@ async def import_preview(
     request: Request, shop_id: int, file: UploadFile, s: Session = Depends(get_session)
 ):
     shop = _get_shop(s, shop_id)
+    if shop.settled_at is not None:
+        raise HTTPException(422, shops.SETTLED_IMPORT_MESSAGE)
     parsed = parse_shop_csv(await file.read())
     validate(parsed, shop.number_range_start, shop.number_range_end)
     diff = shops.diff_import(s, shop, parsed)
@@ -231,9 +240,9 @@ async def import_preview(
 
 @router.post("/haendler/{shop_id}/import/{token}")
 def import_commit(request: Request, shop_id: int, token: str, s: Session = Depends(get_session)):
-    from fastapi import HTTPException
-
     shop = _get_shop(s, shop_id)
+    if shop.settled_at is not None:
+        raise HTTPException(422, shops.SETTLED_IMPORT_MESSAGE)
     entry = request.app.state.pending_imports.get(token)
     if entry is None or entry[0] != shop_id:
         raise HTTPException(410, "Vorschau abgelaufen – bitte die Datei erneut hochladen")

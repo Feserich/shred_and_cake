@@ -4,10 +4,12 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from ..config import admin_pin, check_admin_pin
+from ..fees import paid_at_entry_cents
 from ..models import (
     Article,
     ArticleStatus,
     AuditLog,
+    Event,
     Sale,
     Seller,
     SellerType,
@@ -106,6 +108,11 @@ def update_seller(
     else:
         new["fee_exempt"] = fee_exempt
         new["offer_fee_paid_at_entry"] = offer_fee_paid_at_entry and not fee_exempt
+        new["offer_fee_paid_cents"] = paid_at_entry_cents(
+            seller.offer_fee_paid_cents,
+            paid=new["offer_fee_paid_at_entry"],
+            fee_cents=s.get(Event, 1).offer_fee_cents(seller.type),
+        )
     before = {k: getattr(seller, k) for k in new}
     if before == new:
         return seller

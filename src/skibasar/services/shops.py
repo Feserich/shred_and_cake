@@ -6,9 +6,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..csv_import import ImportRow, ParsedCsv
+from ..fees import paid_at_entry_cents
 from ..models import Article, ArticleStatus, Event, Seller, SellerType
 from . import audit
 from .numbering import RangeError, validate_shop_range
+
+SETTLED_IMPORT_MESSAGE = (
+    "Dieser Händler ist bereits abgerechnet – ein Import ist nicht mehr möglich."
+)
 
 
 def update_event(s: Session, values: dict, client: str = "") -> Event:
@@ -47,12 +52,18 @@ def save_shop(
     if not name:
         raise RangeError("Name fehlt")
     validate_shop_range(s, range_start, range_end, exclude_seller_id=shop.id if shop else None)
+    paid = offer_fee_paid_at_entry and not fee_exempt
     values = {
         "name": name,
         "number_range_start": range_start,
         "number_range_end": range_end,
         "fee_exempt": fee_exempt,
-        "offer_fee_paid_at_entry": offer_fee_paid_at_entry,
+        "offer_fee_paid_at_entry": paid,
+        "offer_fee_paid_cents": paid_at_entry_cents(
+            shop.offer_fee_paid_cents if shop else None,
+            paid=paid,
+            fee_cents=s.get(Event, 1).offer_fee_shop_cents,
+        ),
         "phone": phone.strip(),
         "email": email.strip(),
         "notes": notes.strip(),
@@ -128,6 +139,8 @@ def diff_import(s: Session, shop: Seller, parsed: ParsedCsv) -> ImportDiff:
 
 def apply_import(s: Session, shop: Seller, parsed: ParsedCsv, client: str = "") -> ImportDiff:
     """Commit the import in one transaction. Refuses if the preview had any error."""
+    if shop.settled_at is not None:
+        raise RangeError(SETTLED_IMPORT_MESSAGE)
     diff = diff_import(s, shop, parsed)
     if parsed.has_errors or diff.errors:
         raise RangeError("Der Import enthält Fehler und kann nicht übernommen werden")

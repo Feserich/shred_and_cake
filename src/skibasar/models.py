@@ -45,6 +45,11 @@ class Event(Base):
     offer_fee_shop_cents: Mapped[int] = mapped_column(Integer, default=0)
     commission_shop_bp: Mapped[int] = mapped_column(Integer, default=0)
 
+    def offer_fee_cents(self, seller_type: "SellerType") -> int:
+        if seller_type == SellerType.shop:
+            return self.offer_fee_shop_cents
+        return self.offer_fee_private_cents
+
 
 class Seller(Base):
     __tablename__ = "seller"
@@ -60,6 +65,8 @@ class Seller(Base):
     number_range_end: Mapped[int | None] = mapped_column(Integer)
     fee_exempt: Mapped[bool] = mapped_column(Boolean, default=False)
     offer_fee_paid_at_entry: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Cash actually taken at entry, so a later change of the fee setting never rewrites it
+    offer_fee_paid_cents: Mapped[int | None] = mapped_column(Integer)
     settled_at: Mapped[datetime | None] = mapped_column(DateTime)
     # Frozen at settlement so later fee changes never alter an issued invoice
     settled_sold_total_cents: Mapped[int | None] = mapped_column(Integer)

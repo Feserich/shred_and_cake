@@ -4,6 +4,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from ..fees import paid_at_entry_cents
 from ..models import Article, ArticleStatus, Event, Seller, SellerType
 from ..money import format_eur
 from . import audit
@@ -54,6 +55,11 @@ def save_private_seller(
     values = {k: texts[k].strip() for k in _SELLER_FIELDS}
     values["fee_exempt"] = fee_exempt
     values["offer_fee_paid_at_entry"] = offer_fee_paid_at_entry and not fee_exempt
+    values["offer_fee_paid_cents"] = paid_at_entry_cents(
+        seller.offer_fee_paid_cents if seller else None,
+        paid=values["offer_fee_paid_at_entry"],
+        fee_cents=s.get(Event, 1).offer_fee_private_cents,
+    )
     if seller is None:
         seller = Seller(type=SellerType.private, **values)
         s.add(seller)
@@ -163,8 +169,7 @@ def fee_status(event: Event, seller: Seller) -> str:
     """Human readable (German) offer fee status for screens and the printed list."""
     if seller.fee_exempt:
         return "Gebührenfrei"
-    fee = event.offer_fee_shop_cents if seller.type == SellerType.shop else event.offer_fee_private_cents
-    amount = format_eur(fee)
     if seller.offer_fee_paid_at_entry:
-        return f"Angebotsgebühr {amount} bezahlt"
+        return f"Angebotsgebühr {format_eur(seller.offer_fee_paid_cents or 0)} bezahlt"
+    amount = format_eur(event.offer_fee_cents(seller.type))
     return f"Angebotsgebühr {amount} offen (wird bei der Abrechnung abgezogen)"

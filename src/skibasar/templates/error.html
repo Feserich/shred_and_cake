@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Fehler{% endblock %}
+{% block content %}
+<h1>Das hat nicht geklappt</h1>
+<p class="error big" role="alert">{{ message }}</p>
+{% if hint %}<p>{{ hint }}</p>{% endif %}
+<div class="grid">
+  <button type="button" class="secondary outline" onclick="history.back()">← Zurück</button>
+  <a role="button" href="/" autofocus>Zur Startseite</a>
+</div>
+{% endblock %}

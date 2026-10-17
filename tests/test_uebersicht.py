@@ -4,6 +4,7 @@ from sqlalchemy import select
 
 from skibasar.main import create_app
 from skibasar.models import Article, ArticleStatus, AuditLog, Event, Seller
+from skibasar.services import reports
 
 
 @pytest.fixture
@@ -119,6 +120,29 @@ def test_settled_seller_needs_admin_pin(client, monkeypatch):
     assert r.status_code == 422
 
 
+def test_fee_paid_at_entry_survives_fee_change(client):
+    # Huber pays 2,00 € in cash; then the fee setting is raised to 5,00 €
+    client.post("/uebersicht/verkaeufer/1", data={"name": "Huber", "offer_fee_paid_at_entry": "on"})
+    settings = {"name": "B", "offer_fee_private": "5,00", "commission_private": "10"}
+    client.post("/einstellungen", data=settings)
+    with client.app.state.session_factory() as s:
+        assert reports.build(s).fee_at_entry_cents == 200
+    assert "2,00 € bezahlt" in client.get("/annahme/1/liste").text
+    # Saving the seller again keeps the recorded amount; a newly paying seller pays the new fee
+    client.post("/uebersicht/verkaeufer/1", data={"name": "Huber", "offer_fee_paid_at_entry": "on"})
+    client.post("/uebersicht/verkaeufer/2", data={"name": "Maier", "offer_fee_paid_at_entry": "on"})
+    with client.app.state.session_factory() as s:
+        assert reports.build(s).fee_at_entry_cents == 200 + 500
+    _sell(client, 0)
+    client.post("/abholung/1/abschluss", data={"expected_payout": "900"})
+    invoice = client.get("/abholung/1/rechnung").text
+    assert "Angebotsgebühr 2,00 € bei der Annahme bezahlt" in invoice
+    # Unticking "paid" forgets the amount: the fee is open again
+    client.post("/uebersicht/verkaeufer/2", data={"name": "Maier"})
+    with client.app.state.session_factory() as s:
+        assert s.get(Seller, 2).offer_fee_paid_cents is None
+
+
 def test_gesamtabrechnung_reconciles_to_the_cent(client):
     # Huber 0,1,2 / Maier 3,4; seller 1 pays the fee at entry
     client.post("/uebersicht/verkaeufer/2", data={"name": "Maier", "offer_fee_paid_at_entry": "on"})
@@ -149,3 +173,15 @@ def test_gesamtabrechnung_reconciles_to_the_cent(client):
             for s_ in sellers
         )
         assert sold == parts == 1780 + 2000
+
+
+def test_high_price_edit_needs_confirmation(client):
+    data = {"description": "Ding 1", "price": "1.500", "status": "available"}
+    r = client.post("/uebersicht/artikel/1", data=data, follow_redirects=False)
+    assert r.status_code == 200 and "Preis stimmt" in r.text
+    with client.app.state.session_factory() as s:
+        assert s.scalar(select(Article).where(Article.number == 1)).price_cents != 150000
+    r = client.post("/uebersicht/artikel/1", data={**data, "price_ok": "1"}, follow_redirects=False)
+    assert r.status_code == 303
+    with client.app.state.session_factory() as s:
+        assert s.scalar(select(Article).where(Article.number == 1)).price_cents == 150000

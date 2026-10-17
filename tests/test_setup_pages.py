@@ -32,8 +32,8 @@ def test_settings_roundtrip(client):
 
 
 def test_settings_invalid(client):
-    r = client.post("/einstellungen", data={"name": "x", "offer_fee_private": "1.5"})
-    assert r.status_code == 422 and "Ungültiger Betrag" in r.text
+    r = client.post("/einstellungen", data={"name": "x", "offer_fee_private": "1,2,3"})
+    assert r.status_code == 422 and "kein gültiger Betrag" in r.text
 
 
 def test_shop_and_import_flow(client):
@@ -65,3 +65,36 @@ def test_bad_import_cannot_commit(client):
     ).headers["location"]
     r = client.post(f"{detail}/import", files={"file": ("k.csv", FIXTURE.read_bytes())})
     assert "außerhalb" in r.text and "nicht übernommen" in r.text
+
+
+def test_commission_over_100_percent_rejected(client):
+    for field in ("commission_private", "commission_shop"):
+        r = client.post("/einstellungen", data={"name": "x", field: "150"})
+        assert r.status_code == 422 and "höchstens 100 %" in r.text
+    r = client.post("/einstellungen", data={"name": "x", "commission_shop": "100"})
+    assert r.status_code == 200
+
+
+def test_settled_shop_cannot_be_imported(client):
+    from skibasar.models import Seller
+
+    r = client.post(
+        "/haendler",
+        data={"name": "Sport Krämer", "range_start": "1000", "range_end": "1999"},
+        follow_redirects=False,
+    )
+    detail = r.headers["location"]
+    assert '<input type="file"' in client.get(detail).text
+    r = client.post(f"{detail}/import", files={"file": ("k.csv", FIXTURE.read_bytes())})
+    token = r.text.split(f"{detail}/import/")[1].split('"')[0]
+    with client.app.state.session_factory() as s:
+        from datetime import datetime
+
+        shop = s.get(Seller, int(detail.rsplit("/", 1)[1]))
+        shop.settled_at = datetime.now()
+        s.commit()
+    page = client.get(detail).text
+    assert 'type="file"' not in page and "bereits abgerechnet" in page
+    r = client.post(f"{detail}/import", files={"file": ("k.csv", FIXTURE.read_bytes())})
+    assert r.status_code == 422 and "bereits abgerechnet" in r.text
+    assert client.post(f"{detail}/import/{token}").status_code == 422

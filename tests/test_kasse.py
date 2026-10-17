@@ -106,7 +106,8 @@ def test_change_due(client):
 
     assert "4,50 €" in post("20")
     assert "Es fehlen 0,50 €" in post("15")
-    assert "nicht lesbar" in post("1.5")
+    assert "nicht lesbar" in post("abc")
+    assert "4,50 €" in post("20.00")
     assert post("") == ""
 
 

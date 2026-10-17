@@ -36,9 +36,9 @@ def test_article_entry_numbers_sequentially(client):
     url = _seller(client)
     assert "<strong>0</strong>" in client.get(url).text
     assert _article(client, url, 0).status_code == 303
-    assert _article(client, url, 1, price="1.000,00").status_code == 303
+    assert _article(client, url, 1, price="400,00").status_code == 303
     page = client.get(url).text
-    assert "<strong>2</strong>" in page and "1.000,00 €" in page and "Summe 1.012,50 €" in page
+    assert "<strong>2</strong>" in page and "400,00 €" in page and "Summe 412,50 €" in page
 
 
 def test_stale_expected_number_is_rejected(client):
@@ -51,9 +51,16 @@ def test_stale_expected_number_is_rejected(client):
 
 def test_invalid_price_keeps_input(client):
     url = _seller(client)
-    r = _article(client, url, 0, price="1.5", desc="Helm")
-    assert r.status_code == 422 and "Ungültiger Betrag" in r.text and 'value="Helm"' in r.text
+    r = _article(client, url, 0, price="1,2,3", desc="Helm")
+    assert r.status_code == 422 and "kein gültiger Betrag" in r.text and 'value="Helm"' in r.text
     assert _article(client, url, 0, price="0").status_code == 422
+
+
+def test_price_with_decimal_point_is_accepted(client):
+    # Enter in the price field submits before the client-side mask turns "." into ","
+    url = _seller(client)
+    assert _article(client, url, 0, price="12.50").status_code == 303
+    assert "12,50 €" in client.get(url).text
 
 
 def test_numbers_are_shared_across_sellers_and_skip_shop_ranges(client):
@@ -132,3 +139,21 @@ def test_undo_only_for_newest_number(client):
     _article(client, b, 1)
     assert "Letzten Artikel zurücknehmen" not in client.get(a).text
     assert client.post(f"{a}/artikel/zurueck").status_code == 422
+
+
+def test_high_price_needs_confirmation(client):
+    url = _seller(client)
+    r = _article(client, url, 0, price="1.500")
+    assert r.status_code == 200 and "Preis stimmt" in r.text and "1.500,00 €" in r.text
+    assert "Skijacke" not in client.get(url).text.split("<h2>Artikel")[1].split("<h2>Stammdaten")[0]
+    r = client.post(
+        f"{url}/artikel",
+        data={"expected_number": "0", "description": "Skijacke", "price": "1.500", "price_ok": "1"},
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    assert "1.500,00 €" in client.get(url).text
+
+
+def test_price_at_limit_saves_directly(client):
+    assert _article(client, _seller(client), 0, price="500,00").status_code == 303

@@ -5,6 +5,9 @@
 <h1>{{ shop.name }}</h1>
 {% if message %}<p class="ok">{{ message }}</p>{% endif %}
 <h2>Artikel ({{ shop.articles|length }}, Summe {{ total|eur }})</h2>
+{% if shop.settled_at %}
+<p class="warn">Dieser Händler ist bereits abgerechnet. Ein Import ist nicht mehr möglich.</p>
+{% else %}
 <form method="post" action="/haendler/{{ shop.id }}/import" enctype="multipart/form-data">
   <label>CSV-Datei <input type="file" name="file" accept=".csv,text/csv" required></label>
   <button type="submit">Vorschau</button>
@@ -23,6 +26,7 @@
     <tr><td>Farbe</td><td>nein</td><td>Farbe, Color, Colour</td></tr>
   </table>
 </details>
+{% endif %}
 {% if shop.articles %}
 <table>
   <tr><th class="num">Nr.</th><th>Artikel</th><th>Marke</th><th>Größe</th><th class="num">Preis</th><th>Status</th></tr>

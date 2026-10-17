@@ -133,6 +133,7 @@ def settled_fee_status(seller: Seller, settlement: Settlement) -> str:
     if seller.fee_exempt:
         return "Gebührenfrei"
     if seller.offer_fee_paid_at_entry:
-        return "Angebotsgebühr bei der Annahme bezahlt"
+        paid = format_eur(seller.offer_fee_paid_cents or 0)
+        return f"Angebotsgebühr {paid} bei der Annahme bezahlt"
     amount = format_eur(settlement.open_offer_fee_cents)
     return f"Angebotsgebühr {amount} wurde bei der Abrechnung abgezogen"

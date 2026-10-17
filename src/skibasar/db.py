@@ -3,7 +3,7 @@
 from collections.abc import Iterator
 from pathlib import Path
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -25,8 +25,26 @@ def make_engine(db_path: Path | str) -> Engine:
     return engine
 
 
+def _upgrade(engine: Engine) -> None:
+    """Add columns introduced after a database was created (create_all never alters tables)."""
+    columns = {c["name"] for c in inspect(engine).get_columns("seller")}
+    if "offer_fee_paid_cents" not in columns:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE seller ADD COLUMN offer_fee_paid_cents INTEGER"))
+            # Best guess for fees paid before this column existed: the current setting
+            conn.execute(
+                text(
+                    "UPDATE seller SET offer_fee_paid_cents = (SELECT CASE seller.type"
+                    " WHEN 'shop' THEN offer_fee_shop_cents ELSE offer_fee_private_cents END"
+                    " FROM event WHERE event.id = 1)"
+                    " WHERE offer_fee_paid_at_entry AND NOT fee_exempt"
+                )
+            )
+
+
 def init_db(engine: Engine) -> sessionmaker[Session]:
     Base.metadata.create_all(engine)
+    _upgrade(engine)
     factory = sessionmaker(engine, expire_on_commit=False)
     with factory() as s:
         if s.get(Event, 1) is None:

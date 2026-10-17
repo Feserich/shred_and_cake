@@ -12,6 +12,7 @@
 {% if saved %}<div data-toast="ok">Artikel gespeichert.</div>{% endif %}
 {% if undone %}<div data-toast="ok">Letzter Artikel wurde zurückgenommen.</div>{% endif %}
 {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+{% if price_warning %}<p class="warn" role="alert">Der Preis {{ price_warning|eur }} ist ungewöhnlich hoch. Bitte prüfen (z. B. Tippfehler bei Komma oder Punkt?) und „Preis stimmt“ ankreuzen, wenn er richtig ist.</p>{% endif %}
 <form method="post" action="/annahme/{{ seller.id }}/artikel" class="entry-form" data-enter-advance>
   <input type="hidden" name="expected_number" value="{{ next_number }}">
   <label class="wide">Bezeichnung <input name="description" value="{{ a.description }}" placeholder="z. B. Handschuhe" required autofocus></label>
@@ -19,6 +20,7 @@
   <label>Größe <input name="size" value="{{ a.size }}" list="sizes" autocomplete="off"></label>
   <label>Farbe <input name="color" value="{{ a.color }}" list="colors" autocomplete="off"></label>
   <label>Preis (€) <input name="price" data-price inputmode="decimal" value="{{ a.price }}" placeholder="0,00" required></label>
+  {% if price_warning %}<label class="check"><input type="checkbox" name="price_ok" value="1"> Preis stimmt</label>{% endif %}
   <button type="submit">Artikel speichern</button>
   <datalist id="brands">{% for v in suggest.brand %}<option value="{{ v }}">{% endfor %}</datalist>
   <datalist id="sizes">{% for v in suggest.size %}<option value="{{ v }}">{% endfor %}</datalist>

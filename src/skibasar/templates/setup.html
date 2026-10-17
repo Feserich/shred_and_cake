@@ -14,6 +14,7 @@
   <h2>Händler</h2>
   <label>Angebotsgebühr (€) <input name="offer_fee_shop" data-price inputmode="decimal" value="{{ f.offer_fee_shop }}"></label>
   <label>Provision (%) <input name="commission_shop" inputmode="decimal" value="{{ f.commission_shop }}"></label>
+  <p class="hint">Gebühren am besten vor der ersten Annahme festlegen. Wird eine Angebotsgebühr später geändert, bleiben schon bar bezahlte Gebühren unverändert. Bei noch offenen Gebühren wird bei der Abrechnung der neue Betrag abgezogen.</p>
   <button type="submit">Speichern</button>
 </form>
 {% endblock %}

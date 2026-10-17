@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..models import Article, Seller
-from ..money import MoneyError, parse_eur
+from ..money import PRICE_WARN_CENTS, MoneyError, parse_eur
 from ..services import uebersicht
 from ..services.uebersicht import UebersichtError
 from .setup import _client, get_session, templates
@@ -93,8 +93,16 @@ def _seller_form(request: Request, seller: Seller, *, error=None, saved=False, s
     )
 
 
-def _article_form(request: Request, article: Article, *, error=None, saved=False, status=200):
-    ctx = {"tab": "artikel", "a": article, "error": error, "saved": saved}
+def _article_form(
+    request: Request, article: Article, *, error=None, saved=False, status=200, price_warning=None
+):
+    ctx = {
+        "tab": "artikel",
+        "a": article,
+        "error": error,
+        "saved": saved,
+        "price_warning": price_warning,
+    }
     return templates.TemplateResponse(
         request, "uebersicht_artikel_edit.html", ctx, status_code=status
     )
@@ -145,6 +153,8 @@ async def article_save(request: Request, number: int, s: Session = Depends(get_s
             price = parse_eur(str(f.get("price", "")))
         except MoneyError as e:
             raise UebersichtError("Der Preis ist nicht lesbar") from e
+        if price > PRICE_WARN_CENTS and price != article.price_cents and "price_ok" not in f:
+            return _article_form(request, article, price_warning=price)
         uebersicht.update_article(
             s,
             article,

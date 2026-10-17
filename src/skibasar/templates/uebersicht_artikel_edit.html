@@ -8,6 +8,7 @@
 {% if saved %}<div data-toast="ok">Gespeichert</div>{% endif %}
 {% if error %}<p class="error big" role="alert">{{ error }}</p>{% endif %}
 {% if a.seller.settled_at %}<p class="warn">Der Verkäufer ist abgerechnet. Änderungen brauchen die Admin-PIN; nur Texte sind änderbar.</p>{% endif %}
+{% if price_warning %}<p class="warn" role="alert">Der Preis {{ price_warning|eur }} ist ungewöhnlich hoch. Bitte prüfen und „Preis stimmt“ ankreuzen, wenn er richtig ist.</p>{% endif %}
 <form method="post" data-enter-advance>
   <div class="entry-form">
     <label class="wide">Bezeichnung <input name="description" value="{{ a.description }}" required autofocus></label>
@@ -24,6 +25,7 @@
     </label>
   </div>
   {% if a.seller.settled_at %}<label>Admin-PIN <input type="password" name="admin_pin" inputmode="numeric" autocomplete="off"></label>{% endif %}
+  {% if price_warning %}<label class="check"><input type="checkbox" name="price_ok" value="1"> Preis stimmt</label>{% endif %}
   <button type="submit">Speichern</button>
 </form>
 {% endblock %}

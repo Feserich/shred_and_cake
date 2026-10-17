@@ -77,7 +77,14 @@ def test_phone_may_use_annahme_and_kasse(tmp_path):
 
 def test_phone_is_kept_off_laptop_pages(tmp_path):
     c = _phone(tmp_path)
-    for path in ("/abholung", "/uebersicht", "/haendler", "/einstellungen", "/sicherung", "/telefon"):
+    for path in (
+        "/abholung",
+        "/uebersicht",
+        "/haendler",
+        "/einstellungen",
+        "/sicherung",
+        "/telefon",
+    ):
         assert c.get(path).status_code == 403, path
     assert c.get("/uebersicht", headers={"HX-Request": "true"}).status_code == 403
 
@@ -89,7 +96,11 @@ def test_phone_home_goes_to_annahme(tmp_path):
 
 def test_phone_nav_hides_laptop_links(tmp_path):
     html = _phone(tmp_path).get("/annahme").text
-    assert 'href="/kasse"' in html and 'href="/uebersicht"' not in html and 'href="/einstellungen"' not in html
+    assert (
+        'href="/kasse"' in html
+        and 'href="/uebersicht"' not in html
+        and 'href="/einstellungen"' not in html
+    )
 
 
 def test_localhost_keeps_everything(tmp_path):

@@ -23,6 +23,13 @@ class Settlement:
         return self.payout_cents < 0
 
 
+def paid_at_entry_cents(previous: int | None, *, paid: bool, fee_cents: int) -> int | None:
+    """Fee cash taken at entry: the current fee when first marked paid, then kept as is."""
+    if not paid:
+        return None
+    return fee_cents if previous is None else previous
+
+
 def settle(
     sold_prices_cents: list[int],
     rules: FeeRules,

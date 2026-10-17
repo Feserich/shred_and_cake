@@ -112,3 +112,11 @@ def test_invoice_is_frozen_after_settlement(client):
         s.commit()
     assert client.get("/abholung/1/rechnung").text == before
     assert "7,00 €" in before
+
+
+def test_unsold_articles_are_ticked_as_returned_by_default(client):
+    _sell(client, 0)
+    page = client.get("/abholung/1").text
+    for number in (1, 2):
+        assert f'name="returned" value="{number}" checked' in page
+    assert 'name="returned" value="0"' not in page  # sold articles cannot be returned

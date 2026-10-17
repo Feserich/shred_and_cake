@@ -10,12 +10,34 @@ from .money import MoneyError, format_eur, parse_eur
 # umlauts/ß, spaces and punctuation do not matter ("Grösse" == "groesse" == "GRÖSSE").
 _COLUMNS = {
     "number": ("Artikelnummer", "Nr", "Nummer", "Art.-Nr.", "Artikel-Nr", "Lfd. Nr", "Pos"),
-    "shop_ref": ("Ihre Artikelnummer", "Ihre Nr", "Ihre Art.-Nr.", "Eigene Artikelnummer", "Interne Nummer"),
-    "description": ("Artikelname", "Name", "Bezeichnung", "Artikel", "Beschreibung", "Artikelbezeichnung"),
+    "shop_ref": (
+        "Ihre Artikelnummer",
+        "Ihre Nr",
+        "Ihre Art.-Nr.",
+        "Eigene Artikelnummer",
+        "Interne Nummer",
+    ),
+    "description": (
+        "Artikelname",
+        "Name",
+        "Bezeichnung",
+        "Artikel",
+        "Beschreibung",
+        "Artikelbezeichnung",
+    ),
     "brand": ("Marke", "Mark", "Hersteller", "Brand"),
     "size": ("Grösse", "Größe", "Gr.", "Länge", "Size"),
     "color": ("Farbe", "Color", "Colour"),
-    "price": ("Preis_1", "Preis", "VK", "VK-Preis", "Verkaufspreis", "Preis EUR", "Preis in EUR", "Price"),
+    "price": (
+        "Preis_1",
+        "Preis",
+        "VK",
+        "VK-Preis",
+        "Verkaufspreis",
+        "Preis EUR",
+        "Preis in EUR",
+        "Price",
+    ),
 }
 _REQUIRED = ("number", "description", "price")
 

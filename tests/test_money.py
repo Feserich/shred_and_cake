@@ -26,6 +26,12 @@ from skibasar.money import (
         ("12,34 EUR", 1234),
         ("1.000.000,99", 100000099),
         ("-3,50", -350),
+        # a single dot with 1-2 decimals is a decimal point (English keypad)
+        ("12.50", 1250),
+        ("60.00", 6000),
+        ("1.5", 150),
+        ("7.5 €", 750),
+        ("1.500", 150000),  # three digits: thousands separator
     ],
 )
 def test_parse_eur(text, cents):
@@ -33,7 +39,8 @@ def test_parse_eur(text, cents):
 
 
 @pytest.mark.parametrize(
-    "text", ["", " ", "abc", "1.5", "60.00", "1,234", "1.23,00", "12.3456,00", "1,", ",50", "--1"]
+    "text",
+    ["", " ", "abc", "1,234", "1.23,00", "12.3456,00", "1,", ",50", "--1", "1.2.3", "1.2345"],
 )
 def test_parse_eur_rejects_ambiguous(text):
     with pytest.raises(MoneyError):
@@ -63,7 +70,8 @@ def test_format_eur_rejects_float():
 
 
 @pytest.mark.parametrize(
-    "text,bp", [("10", 1000), ("12,5", 1250), ("7,25 %", 725), ("0", 0), ("100", 10000)]
+    "text,bp",
+    [("10", 1000), ("12,5", 1250), ("12.5", 1250), ("7,25 %", 725), ("0", 0), ("100", 10000)],
 )
 def test_percent(text, bp):
     assert parse_percent_bp(text) == bp
