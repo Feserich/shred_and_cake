@@ -5,7 +5,7 @@
   <label>E-Mail <input name="email" value="{{ f.email }}"></label>
   <label>Adresse <input name="address" value="{{ f.address }}"></label>
   <label><input type="checkbox" name="fee_exempt" {{ "checked" if f.fee_exempt }}> Gebührenfrei (Lehrteam)</label>
-  <label><input type="checkbox" name="offer_fee_paid_at_entry" {{ "checked" if f.paid }}> Gebühr bezahlt</label>
+  <label><input type="checkbox" name="offer_fee_paid_at_entry" {{ "checked" if f.paid }}> Gebühr bezahlt ({{ offer_fee }})</label>
   <label>Notizen <textarea name="notes">{{ f.notes }}</textarea></label>
   <button type="submit">{{ button }}</button>
 </form>

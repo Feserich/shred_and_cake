@@ -55,10 +55,6 @@ def test_phone_page_shows_qr_and_pin_only_locally(tmp_path):
     assert "123456" not in c.get("/telefon").text.replace("value=", "")
 
 
-def test_phone_page_without_lan(tmp_path):
-    assert "--lan" in _client(tmp_path, host="127.0.0.1").get("/telefon").text
-
-
 def test_qr_is_svg():
     assert qr_svg("http://x").startswith("<svg")
 
@@ -107,3 +103,24 @@ def test_localhost_keeps_everything(tmp_path):
     c = _client(tmp_path, pin="123456", host="127.0.0.1")
     assert c.get("/uebersicht").status_code == 200
     assert 'href="/uebersicht"' in c.get("/annahme").text
+
+
+def test_phone_gets_german_error_page_for_laptop_pages(tmp_path):
+    c = _client(tmp_path, pin="123456")
+    c.post("/login", data={"pin": "123456"})
+    r = c.get("/uebersicht")
+    assert r.status_code == 403
+    assert "nur am Laptop verfügbar" in r.text and "<html" in r.text
+
+
+def test_start_page_buttons_depend_on_device(tmp_path):
+    laptop = _client(tmp_path, pin="123456", host="127.0.0.1").get("/").text
+    assert "/abholung" in laptop and "/uebersicht" in laptop and "Erster Start" in laptop
+    phone = _client(tmp_path, pin="123456")
+    phone.post("/login", data={"pin": "123456"})
+    assert "/abholung" not in phone.get("/annahme").text
+
+
+def test_telefon_page_has_no_command_line_hint(tmp_path):
+    text = _client(tmp_path, host="127.0.0.1").get("/telefon").text
+    assert "Skibasar-mit-Telefonen.bat" in text and "--lan" not in text

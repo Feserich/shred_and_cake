@@ -60,7 +60,15 @@ async def laptop_only(request: Request, call_next):
         return RedirectResponse("/annahme", status_code=303)
     if request.headers.get("HX-Request"):
         return Response(status_code=403)
-    return HTMLResponse("Diese Seite ist nur am Laptop verfügbar.", status_code=403)
+    return templates.TemplateResponse(
+        request,
+        "error.html",
+        {
+            "message": "Diese Seite ist nur am Laptop verfügbar.",
+            "hint": "Am Telefon gibt es nur Annahme und Kasse.",
+        },
+        status_code=403,
+    )
 
 
 def _login_page(request: Request, error: str | None = None, status: int = 200):

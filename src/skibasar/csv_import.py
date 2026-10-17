@@ -146,7 +146,7 @@ def parse_shop_csv(data: bytes) -> ParsedCsv:
             if row.price_cents <= 0:
                 row.errors.append("Preis muss größer als 0 sein")
         except MoneyError:
-            row.errors.append(f"Preis nicht lesbar: {cell(raw, 'price')!r}")
+            row.errors.append(f"Preis nicht lesbar: „{cell(raw, 'price')}“")
         result.rows.append(row)
 
     if not result.rows:

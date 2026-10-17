@@ -1,10 +1,22 @@
 {% extends "base.html" %}
 {% block content %}
+{% set on_laptop = request.client and request.client.host in ("127.0.0.1", "::1", "localhost") %}
 <h1>Skibasar</h1>
-<p>Die Anwendung läuft.</p>
-<ul>
-  <li><a href="/annahme">Annahme</a></li>
-  <li><a href="/einstellungen">Einstellungen</a></li>
-  <li><a href="/haendler">Händler und Import</a></li>
-</ul>
+<div class="grid">
+  <a role="button" class="big-action" href="/annahme">Annahme</a>
+  <a role="button" class="big-action" href="/kasse">Kasse</a>
+  {% if on_laptop %}
+  <a role="button" class="big-action" href="/abholung">Abholung</a>
+  <a role="button" class="big-action" href="/uebersicht">Übersicht</a>
+  {% endif %}
+</div>
+{% if on_laptop %}
+<h2>Erster Start</h2>
+<ol>
+  <li><a href="/einstellungen">Einstellungen</a>: Name, Datum und Gebühren des Basars eintragen.</li>
+  <li><a href="/haendler">Händler</a> anlegen und ihre Artikellisten importieren.</li>
+  <li><a href="/annahme">Annahme</a>: Verkäufer und Artikel erfassen.</li>
+</ol>
+<p class="muted"><a href="/telefon">Telefone verbinden</a></p>
+{% endif %}
 {% endblock %}

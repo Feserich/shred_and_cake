@@ -157,3 +157,21 @@ def test_high_price_needs_confirmation(client):
 
 def test_price_at_limit_saves_directly(client):
     assert _article(client, _seller(client), 0, price="500,00").status_code == 303
+
+
+def test_fee_checkbox_shows_amount(client):
+    client.post(
+        "/einstellungen",
+        data={
+            "name": "x",
+            "event_date": "2026-11-07",
+            "private_number_start": "0",
+            "offer_fee_private": "2,00",
+            "commission_private": "10",
+            "offer_fee_shop": "0",
+            "commission_shop": "7,5",
+        },
+    )
+    assert "Gebühr bezahlt (2,00 €)" in client.get("/annahme").text
+    url = _seller(client)
+    assert "Gebühr bezahlt (2,00 €)" in client.get(url).text

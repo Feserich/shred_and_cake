@@ -103,7 +103,7 @@ dialog#confirm-dialog footer button { width: auto; margin: 0; }
 .total { font-size: 1.25rem; text-align: right; }
 .total strong { font-size: 2.5rem; font-variant-numeric: tabular-nums; }
 .change strong { font-size: 2rem; }
-button.big-action { font-size: 1.3rem; }
+button.big-action, a.big-action { font-size: 1.3rem; }
 
 /* Übersicht */
 .tabs { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }

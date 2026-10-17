@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from ..models import Event, Seller, SellerType
-from ..money import PRICE_WARN_CENTS, MoneyError, parse_eur
+from ..money import PRICE_WARN_CENTS, MoneyError, format_eur, parse_eur
 from ..services import annahme
 from ..services.annahme import AnnahmeError
 from ..services.numbering import next_private_number
@@ -15,6 +15,10 @@ router = APIRouter(prefix="/annahme")
 
 _TEXT_FIELDS = ("name", "first_name", "phone", "email", "address", "notes")
 _ARTICLE_FIELDS = ("description", "brand", "size", "color", "price")
+
+
+def _offer_fee(s: Session) -> str:
+    return format_eur(s.get(Event, 1).offer_fee_private_cents)
 
 
 def _seller_form(seller: Seller | None = None) -> dict:
@@ -68,6 +72,7 @@ def entry_home(request: Request, q: str = "", s: Session = Depends(get_session))
             "sellers": annahme.search_private_sellers(s, q),
             "q": q,
             "f": _seller_form(),
+            "offer_fee": _offer_fee(s),
             "error": None,
         },
     )
@@ -77,6 +82,7 @@ def entry_home(request: Request, q: str = "", s: Session = Depends(get_session))
 async def seller_create(request: Request, s: Session = Depends(get_session)):
     def render(form, error, status):
         ctx = {"sellers": annahme.search_private_sellers(s), "q": "", "f": form, "error": error}
+        ctx["offer_fee"] = _offer_fee(s)
         return templates.TemplateResponse(request, "annahme.html", ctx, status_code=status)
 
     return _save_seller(request, s, None, await _seller_values(request), render)
@@ -89,6 +95,7 @@ def _detail_ctx(s: Session, seller: Seller, **extra) -> dict:
         "next_number": next_private_number(s),
         "total": sum(a.price_cents for a in seller.articles),
         "fee_status": annahme.fee_status(event, seller),
+        "offer_fee": format_eur(event.offer_fee_private_cents),
         "a": dict.fromkeys(_ARTICLE_FIELDS, ""),
         "can_undo": annahme.last_undoable_article(s, seller) is not None,
         "suggest": {k: annahme.suggestions(s, k) for k in ("brand", "size", "color")},
