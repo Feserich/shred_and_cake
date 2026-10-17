@@ -1,7 +1,10 @@
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import func, select
 
 from skibasar.main import create_app
+from skibasar.models import Article, ArticleStatus, Sale, Seller
+from skibasar.services import abholung, kasse
 
 
 @pytest.fixture
@@ -116,3 +119,19 @@ def test_receipt_and_list(client):
     receipt = client.get(f"/kasse/verkauf/{sale_id}/beleg").text
     assert "Ding 0" in receipt and "12,25 €" in receipt
     assert client.get("/kasse/verkauf/999").status_code == 404
+
+
+def test_sale_refused_when_seller_settled_after_cart_was_checked(client):
+    factory = client.app.state.session_factory
+    with factory() as a, factory() as b:
+        kasse.lookup(a, 0, [])  # device A has the seller loaded as unsettled
+        abholung.finish(b, b.get(Seller, 1), returned_numbers=[1, 2])  # device B settles seller
+        with pytest.raises(kasse.KasseError, match="abgerechnet"):
+            kasse.complete_sale(a, [0])
+    with factory() as s:
+        assert s.get(Article, s.scalar(select(Article.id).where(Article.number == 0))).status == (
+            ArticleStatus.available
+        )
+        assert (
+            s.scalar(select(func.count()).select_from(Sale).where(Sale.cancelled.is_(False))) == 0
+        )

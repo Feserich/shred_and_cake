@@ -1,8 +1,10 @@
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 from skibasar.main import create_app
-from skibasar.models import Event, Seller, SellerType
+from skibasar.models import Article, ArticleStatus, Event, Seller, SellerType
+from skibasar.services import abholung, kasse
 
 
 @pytest.fixture
@@ -120,3 +122,35 @@ def test_unsold_articles_are_ticked_as_returned_by_default(client):
     for number in (1, 2):
         assert f'name="returned" value="{number}" checked' in page
     assert 'name="returned" value="0"' not in page  # sold articles cannot be returned
+
+
+def test_finish_does_not_return_article_sold_in_the_meantime(client, monkeypatch):
+    stale = None
+    factory = client.app.state.session_factory
+    with factory() as s:
+        stale = abholung.preview(s, s.get(Seller, 1))
+    assert [a.number for a in stale.unsold] == [0, 1, 2]
+    _sell(client, 0)  # another device sells article 0 after the preview was built
+    monkeypatch.setattr(abholung, "preview", lambda s, seller: stale)
+    with factory() as s, pytest.raises(abholung.AbholungError, match="verkauft"):
+        abholung.finish(s, s.get(Seller, 1), returned_numbers=[0, 1, 2])
+    with factory() as s:
+        assert s.get(Seller, 1).settled_at is None
+        statuses = {a.number: a.status for a in s.scalars(select(Article))}
+    assert statuses == {
+        0: ArticleStatus.sold,
+        1: ArticleStatus.available,
+        2: ArticleStatus.available,
+    }
+
+
+def test_finish_after_sale_in_other_session_refuses_stale_payout(client):
+    factory = client.app.state.session_factory
+    with factory() as a, factory() as b:
+        seller = a.get(Seller, 1)
+        shown = abholung.preview(a, seller).settlement.payout_cents
+        kasse.complete_sale(b, [0])
+        with pytest.raises(abholung.AbholungError, match="geändert"):
+            abholung.finish(a, seller, returned_numbers=[1, 2], expected_payout_cents=shown)
+    with factory() as s:
+        assert s.get(Seller, 1).settled_at is None

@@ -3,7 +3,7 @@
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
-from ..models import Article, ArticleStatus, Sale
+from ..models import Article, ArticleStatus, Sale, Seller
 from . import audit
 
 
@@ -38,8 +38,9 @@ def complete_sale(s: Session, numbers: list[int], client: str = "") -> Sale:
     """Mark all articles sold in one transaction; refuse if any is no longer available.
 
     The conditional UPDATE is the guard against double-selling: it only touches rows that are
-    still ``available``, so a second device that sold the same article first makes the row count
-    come up short and the whole sale is rolled back.
+    still ``available`` and whose seller is not yet settled, so a second device that sold the same
+    article first, or settled the seller a moment ago, makes the row count come up short and the
+    whole sale is rolled back.
     """
     if not numbers:
         raise KasseError("Der Verkauf ist leer")
@@ -58,13 +59,19 @@ def complete_sale(s: Session, numbers: list[int], client: str = "") -> Sale:
     s.flush()
     result = s.execute(
         update(Article)
-        .where(Article.number.in_(numbers), Article.status == ArticleStatus.available)
+        .where(
+            Article.number.in_(numbers),
+            Article.status == ArticleStatus.available,
+            Article.seller_id.in_(select(Seller.id).where(Seller.settled_at.is_(None))),
+        )
         .values(status=ArticleStatus.sold, sale_id=sale.id)
         .execution_options(synchronize_session=False)
     )
     if result.rowcount != len(numbers):
         s.rollback()
-        raise KasseError("Mindestens ein Artikel wurde gerade anderswo verkauft – bitte prüfen")
+        raise KasseError(
+            "Mindestens ein Artikel wurde gerade anderswo verkauft oder abgerechnet – bitte prüfen"
+        )
     audit.log(
         s,
         "sale",

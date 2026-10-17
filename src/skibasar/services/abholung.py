@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, or_, select, text, update
 from sqlalchemy.orm import Session
 
 from ..fees import FeeRules, Settlement, settle
@@ -87,22 +87,44 @@ def finish(
 
     ``expected_payout_cents`` is the payout the volunteer saw; if a sale or storno changed it in
     the meantime we refuse, so nobody hands out a different amount than the one on screen.
+
+    The transaction starts with BEGIN IMMEDIATE (SQLite write lock), so the payout re-check and the
+    writes cannot interleave with a sale from another device.
     """
+    s.rollback()  # end any read transaction so BEGIN IMMEDIATE can take the write lock
+    s.execute(text("BEGIN IMMEDIATE"))
+    s.refresh(seller)
     if seller.settled_at is not None:
+        s.rollback()
         raise AbholungError("Dieser Verkäufer ist schon abgerechnet")
     before = preview(s, seller)
     if (
         expected_payout_cents is not None
         and before.settlement.payout_cents != expected_payout_cents
     ):
+        s.rollback()
         raise AbholungError(
             "Die Abrechnung hat sich inzwischen geändert (neuer Verkauf oder Storno) – "
             "bitte die Zahlen unten prüfen und erneut abschließen"
         )
     ticked = set(returned_numbers)
     returned = [a for a in before.unsold if a.number in ticked]
-    for a in returned:
-        a.status = ArticleStatus.returned
+    if returned:
+        result = s.execute(
+            update(Article)
+            .where(
+                Article.number.in_([a.number for a in returned]),
+                Article.status == ArticleStatus.available,
+            )
+            .values(status=ArticleStatus.returned)
+            .execution_options(synchronize_session=False)
+        )
+        if result.rowcount != len(returned):
+            s.rollback()
+            raise AbholungError(
+                "Ein Artikel wurde inzwischen verkauft – bitte die Zahlen unten prüfen "
+                "und erneut abschließen"
+            )
     seller.settled_at = datetime.now()
     result = before.settlement
     seller.settled_sold_total_cents = result.sold_total_cents
@@ -125,6 +147,7 @@ def finish(
         client,
     )
     s.commit()
+    s.expire_all()  # the bulk UPDATE bypassed the ORM, so reload article statuses
     return preview(s, seller)
 
 
