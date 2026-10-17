@@ -27,6 +27,12 @@ def make_engine(db_path: Path | str) -> Engine:
 
 def _upgrade(engine: Engine) -> None:
     """Add columns introduced after a database was created (create_all never alters tables)."""
+    event_columns = {c["name"] for c in inspect(engine).get_columns("event")}
+    if "admin_pin_hash" not in event_columns:
+        with engine.begin() as conn:
+            conn.execute(
+                text("ALTER TABLE event ADD COLUMN admin_pin_hash VARCHAR(200) DEFAULT ''")
+            )
     columns = {c["name"] for c in inspect(engine).get_columns("seller")}
     if "offer_fee_paid_cents" not in columns:
         with engine.begin() as conn:

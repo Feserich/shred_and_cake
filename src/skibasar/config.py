@@ -1,5 +1,6 @@
 """Runtime configuration read from the environment."""
 
+import hashlib
 import os
 import secrets
 import sys
@@ -21,13 +22,38 @@ def data_dir() -> Path:
 
 
 def admin_pin() -> str | None:
-    """PIN that guards edits of settled sellers; ``None`` means such edits are disabled."""
+    """Admin PIN from the environment; it overrides the PIN stored in the database."""
     return os.environ.get("SKIBASAR_ADMIN_PIN") or None
 
 
-def check_admin_pin(given: str) -> bool:
-    expected = admin_pin()
-    return expected is not None and secrets.compare_digest(given.strip(), expected)
+def hash_pin(pin: str) -> str:
+    """Salted scrypt hash as ``salt$hash`` (hex), for storing the PIN in the database."""
+    salt = secrets.token_bytes(16)
+    return f"{salt.hex()}${hashlib.scrypt(pin.encode(), salt=salt, n=2**14, r=8, p=1).hex()}"
+
+
+def _matches_hash(given: str, stored: str) -> bool:
+    try:
+        salt_hex, digest_hex = stored.split("$")
+        salt = bytes.fromhex(salt_hex)
+        expected = bytes.fromhex(digest_hex)
+    except ValueError:
+        return False
+    actual = hashlib.scrypt(given.encode(), salt=salt, n=2**14, r=8, p=1)
+    return secrets.compare_digest(actual, expected)
+
+
+def admin_pin_configured(stored_hash: str | None) -> bool:
+    return admin_pin() is not None or bool(stored_hash)
+
+
+def check_admin_pin(given: str, stored_hash: str | None = None) -> bool:
+    """Check against the environment PIN if set, otherwise against the stored hash."""
+    given = given.strip()
+    env = admin_pin()
+    if env is not None:
+        return secrets.compare_digest(given.encode(), env.encode())
+    return bool(stored_hash) and _matches_hash(given, stored_hash)
 
 
 def event_pin() -> str | None:

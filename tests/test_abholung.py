@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from skibasar.main import create_app
-from skibasar.models import Article, ArticleStatus, Event, Seller, SellerType
+from skibasar.models import Article, ArticleStatus, AuditLog, Event, Seller, SellerType
 from skibasar.services import abholung, kasse
 
 
@@ -154,3 +154,35 @@ def test_finish_after_sale_in_other_session_refuses_stale_payout(client):
             abholung.finish(a, seller, returned_numbers=[1, 2], expected_payout_cents=shown)
     with factory() as s:
         assert s.get(Seller, 1).settled_at is None
+
+
+def test_undo_settlement(client, monkeypatch):
+    monkeypatch.delenv("SKIBASAR_ADMIN_PIN", raising=False)
+    _sell(client, 0)
+    client.post("/abholung/1/abschluss", data={"returned": ["1", "2"], "expected_payout": "700"})
+    page = client.get("/abholung/1").text
+    assert "Abrechnung zurücknehmen" in page and "data-confirm" in page
+    r = client.post("/abholung/1/zuruecknehmen", data={"admin_pin": "4711"})
+    assert r.status_code == 422 and "noch keine eingerichtet" in r.text
+    client.post("/einstellungen/admin-pin", data={"new_pin": "4711"})
+    r = client.post("/abholung/1/zuruecknehmen", data={"admin_pin": "0000"})
+    assert r.status_code == 422 and "PIN ist falsch" in r.text
+    with client.app.state.session_factory() as s:
+        assert s.get(Seller, 1).settled_at is not None
+    r = client.post("/abholung/1/zuruecknehmen", data={"admin_pin": "4711"}, follow_redirects=True)
+    assert "Abrechnung zurückgenommen" in r.text and "Vorschau" in r.text
+    with client.app.state.session_factory() as s:
+        seller = s.get(Seller, 1)
+        assert seller.settled_at is None and seller.settled_payout_cents is None
+        assert seller.settled_sold_total_cents is None
+        assert seller.settled_commission_cents is None and seller.settled_open_fee_cents is None
+        status = {a.number: a.status for a in seller.articles}
+        assert status[0] == ArticleStatus.sold
+        assert status[1] == status[2] == ArticleStatus.available
+        actions = [a.action for a in s.query(AuditLog).filter_by(entity="seller")]
+        assert "unsettle" in actions
+    # not settled any more: a second undo is refused, and the seller can be settled again
+    r = client.post("/abholung/1/zuruecknehmen", data={"admin_pin": "4711"})
+    assert r.status_code == 422 and "nicht abgerechnet" in r.text
+    client.post("/abholung/1/abschluss", data={"returned": ["1", "2"], "expected_payout": "700"})
+    assert client.get("/abholung/1/rechnung").status_code == 200

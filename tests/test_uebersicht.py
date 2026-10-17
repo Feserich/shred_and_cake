@@ -101,7 +101,7 @@ def test_settled_seller_needs_admin_pin(client, monkeypatch):
     form = {"name": "Huber-Neu", "phone": "123"}
     monkeypatch.delenv("SKIBASAR_ADMIN_PIN", raising=False)
     r = client.post("/uebersicht/verkaeufer/1", data=form)
-    assert r.status_code == 422 and "keine Admin-PIN" in r.text
+    assert r.status_code == 422 and "noch keine eingerichtet" in r.text
     monkeypatch.setenv("SKIBASAR_ADMIN_PIN", "4711")
     r = client.post("/uebersicht/verkaeufer/1", data=form | {"admin_pin": "0000"})
     assert r.status_code == 422 and "PIN ist falsch" in r.text

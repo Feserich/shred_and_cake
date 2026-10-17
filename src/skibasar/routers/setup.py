@@ -9,6 +9,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from ..config import admin_pin
 from ..csv_import import parse_shop_csv, validate
 from ..models import Article, Event, Seller, SellerType
 from ..money import (
@@ -19,6 +20,7 @@ from ..money import (
     parse_eur,
     parse_percent_bp,
 )
+from ..services import admin_pin as admin_pin_service
 from ..services import shops
 from ..services.numbering import RangeError
 
@@ -49,11 +51,49 @@ def _event_form(event: Event) -> dict:
     }
 
 
+def _pin_state(s: Session) -> str:
+    """'env' (set by SKIBASAR_ADMIN_PIN, not changeable here), 'set' or 'none'."""
+    if admin_pin() is not None:
+        return "env"
+    return "set" if s.get(Event, 1).admin_pin_hash else "none"
+
+
 @router.get("/einstellungen", response_class=HTMLResponse)
-def settings_page(request: Request, saved: int = 0, s: Session = Depends(get_session)):
-    return templates.TemplateResponse(
-        request, "setup.html", {"f": _event_form(s.get(Event, 1)), "saved": saved, "error": None}
-    )
+def settings_page(
+    request: Request, saved: int = 0, pin_saved: int = 0, s: Session = Depends(get_session)
+):
+    ctx = {
+        "f": _event_form(s.get(Event, 1)),
+        "saved": saved,
+        "pin_saved": pin_saved,
+        "pin_state": _pin_state(s),
+        "error": None,
+        "pin_error": None,
+    }
+    return templates.TemplateResponse(request, "setup.html", ctx)
+
+
+@router.post("/einstellungen/admin-pin", response_class=HTMLResponse)
+def admin_pin_save(
+    request: Request,
+    current_pin: str = Form(""),
+    new_pin: str = Form(""),
+    s: Session = Depends(get_session),
+):
+    try:
+        admin_pin_service.set_pin(s, current=current_pin, new=new_pin, client=_client(request))
+    except admin_pin_service.AdminPinError as e:
+        s.rollback()
+        ctx = {
+            "f": _event_form(s.get(Event, 1)),
+            "saved": 0,
+            "pin_saved": 0,
+            "pin_state": _pin_state(s),
+            "error": None,
+            "pin_error": str(e),
+        }
+        return templates.TemplateResponse(request, "setup.html", ctx, status_code=422)
+    return RedirectResponse("/einstellungen?pin_saved=1", status_code=303)
 
 
 @router.post("/einstellungen", response_class=HTMLResponse)
@@ -96,9 +136,15 @@ def settings_save(
             if used is not None and used < values["private_number_start"]:
                 raise MoneyError("Es gibt bereits Privatartikel unterhalb der Startnummer")
     except (MoneyError, ValueError) as e:
-        return templates.TemplateResponse(
-            request, "setup.html", {"f": form, "saved": 0, "error": str(e)}, status_code=422
-        )
+        ctx = {
+            "f": form,
+            "saved": 0,
+            "pin_saved": 0,
+            "pin_state": _pin_state(s),
+            "error": str(e),
+            "pin_error": None,
+        }
+        return templates.TemplateResponse(request, "setup.html", ctx, status_code=422)
     shops.update_event(s, values, _client(request))
     return RedirectResponse("/einstellungen?saved=1", status_code=303)
 

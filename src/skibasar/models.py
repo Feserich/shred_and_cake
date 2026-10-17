@@ -44,6 +44,8 @@ class Event(Base):
     commission_private_bp: Mapped[int] = mapped_column(Integer, default=0)
     offer_fee_shop_cents: Mapped[int] = mapped_column(Integer, default=0)
     commission_shop_bp: Mapped[int] = mapped_column(Integer, default=0)
+    # Salted hash of the admin PIN (see config.hash_pin); empty = none set in the app
+    admin_pin_hash: Mapped[str] = mapped_column(String(200), default="")
 
     def offer_fee_cents(self, seller_type: "SellerType") -> int:
         if seller_type == SellerType.shop:

@@ -17,4 +17,18 @@
   <p class="hint">Gebühren am besten vor der ersten Annahme festlegen. Wird eine Angebotsgebühr später geändert, bleiben schon bar bezahlte Gebühren unverändert. Bei noch offenen Gebühren wird bei der Abrechnung der neue Betrag abgezogen.</p>
   <button type="submit">Speichern</button>
 </form>
+
+<h2>Admin-PIN</h2>
+{% if pin_error %}<p class="error">{{ pin_error }}</p>{% endif %}
+{% if pin_saved %}<div data-toast="ok">Admin-PIN gespeichert.</div>{% endif %}
+{% if pin_state == "env" %}
+<p class="hint">Die Admin-PIN ist beim Start des Programms festgelegt und kann hier nicht geändert werden.</p>
+{% else %}
+<p class="hint">Die Admin-PIN schützt Änderungen an abgerechneten Verkäufern und das Zurücknehmen einer Abrechnung. {% if pin_state == "set" %}Es ist bereits eine PIN eingerichtet.{% else %}Es ist noch keine PIN eingerichtet.{% endif %}</p>
+<form method="post" action="/einstellungen/admin-pin">
+  {% if pin_state == "set" %}<label>Bisherige PIN <input type="password" name="current_pin" inputmode="numeric" autocomplete="off" required></label>{% endif %}
+  <label>Neue PIN (mindestens 4 Ziffern) <input type="password" name="new_pin" inputmode="numeric" autocomplete="off" required></label>
+  <button type="submit">PIN speichern</button>
+</form>
+{% endif %}
 {% endblock %}

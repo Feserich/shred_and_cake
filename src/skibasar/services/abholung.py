@@ -1,5 +1,6 @@
 """Pickup and settlement (Abholung): read-only preview first, one explicit commit afterwards."""
 
+import json
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -7,9 +8,9 @@ from sqlalchemy import and_, or_, select, text, update
 from sqlalchemy.orm import Session
 
 from ..fees import FeeRules, Settlement, settle
-from ..models import Article, ArticleStatus, Event, Seller, SellerType
+from ..models import Article, ArticleStatus, AuditLog, Event, Seller, SellerType
 from ..money import format_eur
-from . import audit
+from . import admin_pin, audit
 
 
 class AbholungError(ValueError):
@@ -149,6 +150,61 @@ def finish(
     s.commit()
     s.expire_all()  # the bulk UPDATE bypassed the ORM, so reload article statuses
     return preview(s, seller)
+
+
+def undo_settlement(s: Session, seller: Seller, *, admin_pin_given: str, client: str = "") -> None:
+    """Take a settlement back: clear the frozen figures and free the articles marked returned.
+
+    Which articles that were is read from the ``settle`` audit entry (field ``returned``); other
+    returned or withdrawn articles stay as they were. Needs the admin PIN.
+    """
+    try:
+        admin_pin.require(s, admin_pin_given)
+    except admin_pin.AdminPinError as e:
+        raise AbholungError(str(e)) from e
+    s.rollback()
+    s.execute(text("BEGIN IMMEDIATE"))
+    s.refresh(seller)
+    if seller.settled_at is None:
+        s.rollback()
+        raise AbholungError("Dieser Verkäufer ist nicht abgerechnet")
+    entry = s.scalars(
+        select(AuditLog)
+        .where(
+            AuditLog.entity == "seller",
+            AuditLog.entity_id == seller.id,
+            AuditLog.action == "settle",
+        )
+        .order_by(AuditLog.id.desc())
+        .limit(1)
+    ).first()
+    returned = json.loads(entry.after).get("returned", []) if entry and entry.after else []
+    if returned:
+        s.execute(
+            update(Article)
+            .where(
+                Article.number.in_(returned),
+                Article.seller_id == seller.id,
+                Article.status == ArticleStatus.returned,
+            )
+            .values(status=ArticleStatus.available)
+            .execution_options(synchronize_session=False)
+        )
+    before = {
+        "settled_at": seller.settled_at.isoformat(timespec="seconds"),
+        "sold_total_cents": seller.settled_sold_total_cents,
+        "commission_cents": seller.settled_commission_cents,
+        "open_offer_fee_cents": seller.settled_open_fee_cents,
+        "payout_cents": seller.settled_payout_cents,
+    }
+    seller.settled_at = None
+    seller.settled_sold_total_cents = None
+    seller.settled_commission_cents = None
+    seller.settled_open_fee_cents = None
+    seller.settled_payout_cents = None
+    audit.log(s, "seller", seller.id, "unsettle", before, {"available": returned}, client)
+    s.commit()
+    s.expire_all()  # the bulk UPDATE bypassed the ORM, so reload article statuses
 
 
 def settled_fee_status(seller: Seller, settlement: Settlement) -> str:

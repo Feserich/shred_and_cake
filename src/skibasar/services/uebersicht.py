@@ -3,7 +3,6 @@
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from ..config import admin_pin, check_admin_pin
 from ..fees import paid_at_entry_cents
 from ..models import (
     Article,
@@ -14,6 +13,7 @@ from ..models import (
     Seller,
     SellerType,
 )
+from . import admin_pin as admin_pin_service
 from . import audit
 
 LIMIT = 500
@@ -28,14 +28,11 @@ class UebersichtError(ValueError):
     pass
 
 
-def _require_pin(pin: str) -> None:
-    if admin_pin() is None:
-        raise UebersichtError(
-            "Abgerechnete Verkäufer können nur mit Admin-PIN geändert werden – "
-            "es ist keine Admin-PIN eingerichtet (SKIBASAR_ADMIN_PIN)"
-        )
-    if not check_admin_pin(pin):
-        raise UebersichtError("Die Admin-PIN ist falsch")
+def _require_pin(s: Session, pin: str) -> None:
+    try:
+        admin_pin_service.require(s, pin)
+    except admin_pin_service.AdminPinError as e:
+        raise UebersichtError(str(e)) from e
 
 
 def list_sellers(s: Session, q: str = "", type_: str = "", status: str = "") -> list[Seller]:
@@ -104,7 +101,7 @@ def update_seller(
     if not new["name"]:
         raise UebersichtError("Name fehlt")
     if seller.settled_at is not None:
-        _require_pin(admin_pin_given)
+        _require_pin(s, admin_pin_given)
     else:
         new["fee_exempt"] = fee_exempt
         new["offer_fee_paid_at_entry"] = offer_fee_paid_at_entry and not fee_exempt
@@ -138,7 +135,7 @@ def update_article(
     if not new["description"]:
         raise UebersichtError("Artikelbezeichnung fehlt")
     if article.seller.settled_at is not None:
-        _require_pin(admin_pin_given)
+        _require_pin(s, admin_pin_given)
     if article.status == ArticleStatus.sold:
         if price_cents != article.price_cents:
             raise UebersichtError(

@@ -1,7 +1,7 @@
 import sqlite3
 
 from skibasar.db import init_db, make_engine
-from skibasar.models import Seller
+from skibasar.models import Event, Seller
 
 
 def test_upgrade_adds_paid_fee_column_to_old_database(tmp_path):
@@ -30,3 +30,17 @@ def test_upgrade_adds_paid_fee_column_to_old_database(tmp_path):
     with init_db(make_engine(db))() as s:
         paid = {x.name: x.offer_fee_paid_cents for x in s.query(Seller)}
     assert paid == {"Paid": 250, "Open": None, "Exempt": None, "Shop": 1000}
+
+
+def test_upgrade_adds_admin_pin_column_to_old_database(tmp_path):
+    db = tmp_path / "old.db"
+    engine = make_engine(db)
+    init_db(engine)
+    engine.dispose()
+    con = sqlite3.connect(db)
+    con.execute("ALTER TABLE event DROP COLUMN admin_pin_hash")
+    con.commit()
+    con.close()
+
+    with init_db(make_engine(db))() as s:
+        assert s.get(Event, 1).admin_pin_hash == ""

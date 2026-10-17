@@ -20,7 +20,7 @@ def _get_seller(s: Session, seller_id: int) -> Seller:
     return seller
 
 
-def _detail(request: Request, s: Session, seller: Seller, *, error=None, status=200):
+def _detail(request: Request, s: Session, seller: Seller, *, error=None, status=200, undone=False):
     event = s.get(Event, 1)
     p = abholung.preview(s, seller)
     status_text = (
@@ -28,7 +28,7 @@ def _detail(request: Request, s: Session, seller: Seller, *, error=None, status=
         if seller.settled_at
         else fee_status(event, seller)
     )
-    ctx = {"p": p, "fee_status": status_text, "error": error}
+    ctx = {"p": p, "fee_status": status_text, "error": error, "undone": undone}
     return templates.TemplateResponse(request, "abholung_detail.html", ctx, status_code=status)
 
 
@@ -39,8 +39,13 @@ def search(request: Request, q: str = "", s: Session = Depends(get_session)):
 
 
 @router.get("/{seller_id}", response_class=HTMLResponse)
-def detail(request: Request, seller_id: int, s: Session = Depends(get_session)):
-    return _detail(request, s, _get_seller(s, seller_id))
+def detail(
+    request: Request,
+    seller_id: int,
+    zurueckgenommen: int = 0,
+    s: Session = Depends(get_session),
+):
+    return _detail(request, s, _get_seller(s, seller_id), undone=bool(zurueckgenommen))
 
 
 @router.post("/{seller_id}/abschluss", response_class=HTMLResponse)
@@ -61,6 +66,23 @@ async def finish(request: Request, seller_id: int, s: Session = Depends(get_sess
         s.rollback()
         return _detail(request, s, seller, error=str(e), status=409)
     return RedirectResponse(f"/abholung/{seller_id}/rechnung?neu=1", status_code=303)
+
+
+@router.post("/{seller_id}/zuruecknehmen", response_class=HTMLResponse)
+async def undo(request: Request, seller_id: int, s: Session = Depends(get_session)):
+    seller = _get_seller(s, seller_id)
+    data = await request.form()
+    try:
+        abholung.undo_settlement(
+            s,
+            seller,
+            admin_pin_given=str(data.get("admin_pin", "")),
+            client=_client(request),
+        )
+    except AbholungError as e:
+        s.rollback()
+        return _detail(request, s, seller, error=str(e), status=422)
+    return RedirectResponse(f"/abholung/{seller_id}?zurueckgenommen=1", status_code=303)
 
 
 @router.get("/{seller_id}/rechnung", response_class=HTMLResponse)

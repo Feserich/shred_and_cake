@@ -58,7 +58,7 @@ Command line options: `--lan`, `--port <n>` (default 8000), `--no-browser`.
 |---|---|
 | `SKIBASAR_DATA_DIR` | Folder for database, journal and backups (default: `data/`, next to the exe when packaged) |
 | `SKIBASAR_EVENT_PIN` | Fixed PIN for phones (otherwise a random one is generated with `--lan`) |
-| `SKIBASAR_ADMIN_PIN` | Admin PIN for edits of settled sellers (without it such edits are disabled) |
+| `SKIBASAR_ADMIN_PIN` | Admin PIN; overrides the PIN set on the Einstellungen page |
 
 ## Building the executables
 

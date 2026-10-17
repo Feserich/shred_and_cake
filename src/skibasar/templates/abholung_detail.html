@@ -6,6 +6,7 @@
 <p><a href="/abholung">← Abholung</a></p>
 <h1>{{ seller.display_name }}</h1>
 {% if error %}<p class="error big" role="alert">{{ error }}</p>{% endif %}
+{% if undone %}<div data-toast="ok">Abrechnung zurückgenommen.</div>{% endif %}
 {% if seller.settled_at %}
 <p class="ok">Abgerechnet am {{ seller.settled_at.strftime("%d.%m.%Y %H:%M") }}.</p>
 {% else %}
@@ -61,4 +62,14 @@
   <button type="submit" class="big-action">Abrechnung abschließen</button>
   {% endif %}
 </form>
+
+{% if seller.settled_at %}
+<h2>Abrechnung zurücknehmen</h2>
+<p class="hint">Nur bei einem Irrtum: Die Abrechnung wird gelöscht, zurückgegebene Artikel sind wieder frei, und der Verkäufer kann neu abgerechnet werden. Die bereits gedruckte Rechnung ist dann ungültig.</p>
+<form method="post" action="/abholung/{{ seller.id }}/zuruecknehmen"
+      data-confirm="Abrechnung für {{ seller.display_name }} wirklich zurücknehmen? Die Rechnung wird ungültig, die zurückgegebenen Artikel sind wieder frei.">
+  <label>Admin-PIN <input type="password" name="admin_pin" inputmode="numeric" autocomplete="off" required></label>
+  <button type="submit" class="secondary">Abrechnung zurücknehmen</button>
+</form>
+{% endif %}
 {% endblock %}
