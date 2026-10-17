@@ -3,7 +3,7 @@
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
-from ..models import Article, ArticleStatus, Sale, Seller
+from ..models import Article, ArticleStatus, Sale, SaleItem, Seller
 from . import audit
 
 
@@ -55,6 +55,12 @@ def complete_sale(s: Session, numbers: list[int], client: str = "") -> Sale:
         if a.seller.settled_at is not None:
             raise KasseError(f"Der Verkäufer von Nummer {a.number} ist bereits abgerechnet")
     sale = Sale(total_cents=sum(a.price_cents for a in articles))
+    sale.items = [
+        SaleItem(
+            article_id=a.id, number=a.number, description=a.description, price_cents=a.price_cents
+        )
+        for a in articles
+    ]
     s.add(sale)
     s.flush()
     result = s.execute(

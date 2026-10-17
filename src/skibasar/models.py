@@ -95,6 +95,24 @@ class Sale(Base):
     cancelled: Mapped[bool] = mapped_column(Boolean, default=False)
 
     articles: Mapped[list["Article"]] = relationship(back_populates="sale")
+    items: Mapped[list["SaleItem"]] = relationship(
+        back_populates="sale", order_by="SaleItem.number", cascade="all, delete-orphan"
+    )
+
+
+class SaleItem(Base):
+    """An article as it was sold; survives a Storno, when the article itself is freed again."""
+
+    __tablename__ = "sale_item"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    sale_id: Mapped[int] = mapped_column(ForeignKey("sale.id"), index=True)
+    article_id: Mapped[int] = mapped_column(ForeignKey("article.id"))
+    number: Mapped[int] = mapped_column(Integer)
+    description: Mapped[str] = mapped_column(String(200))
+    price_cents: Mapped[int] = mapped_column(Integer)
+
+    sale: Mapped[Sale] = relationship(back_populates="items")
 
 
 class Article(Base):

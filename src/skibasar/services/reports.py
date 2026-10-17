@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from ..models import Article, ArticleStatus, Sale, Seller, SellerType
+from ..models import Article, ArticleStatus, Sale, SaleItem, Seller, SellerType
 from . import abholung
 
 
@@ -36,6 +36,7 @@ class Report:
     groups: dict[SellerType, GroupTotals]
     open_sellers: list[OpenSeller]
     open_sold_cents: int  # sold, but the seller has not been settled yet
+    sale_items_cents: int  # Σ sale items of valid sales; must equal sales_total_cents
 
     @property
     def settled_sold_cents(self) -> int:
@@ -69,12 +70,21 @@ class Report:
             == self.payout_cents + self.commission_cents + self.deducted_fee_cents
         )
         all_sold = self.settled_sold_cents + self.open_sold_cents
-        return settled_ok and all_sold == self.sales_total_cents
+        return (
+            settled_ok
+            and all_sold == self.sales_total_cents
+            and self.sale_items_cents == self.sales_total_cents
+        )
 
 
 def build(s: Session) -> Report:
     sales_total = s.scalar(
         select(func.coalesce(func.sum(Sale.total_cents), 0)).where(Sale.cancelled.is_(False))
+    )
+    items_total = s.scalar(
+        select(func.coalesce(func.sum(SaleItem.price_cents), 0))
+        .join(Sale)
+        .where(Sale.cancelled.is_(False))
     )
     sales_count = s.scalar(select(func.count()).select_from(Sale).where(Sale.cancelled.is_(False)))
     cancelled = s.scalar(select(func.count()).select_from(Sale).where(Sale.cancelled.is_(True)))
@@ -101,4 +111,6 @@ def build(s: Session) -> Report:
         else:
             open_sold += r.sold_total_cents
             open_sellers.append(OpenSeller(seller, r.sold_total_cents, r.payout_cents))
-    return Report(sales_count, cancelled, sales_total, by_status, groups, open_sellers, open_sold)
+    return Report(
+        sales_count, cancelled, sales_total, by_status, groups, open_sellers, open_sold, items_total
+    )

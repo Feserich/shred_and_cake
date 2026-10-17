@@ -1,9 +1,9 @@
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from skibasar.main import create_app
-from skibasar.models import Article, ArticleStatus, AuditLog, Event, Seller
+from skibasar.models import Article, ArticleStatus, AuditLog, Event, SaleItem, Seller
 from skibasar.services import reports
 
 
@@ -185,3 +185,12 @@ def test_high_price_edit_needs_confirmation(client):
     assert r.status_code == 303
     with client.app.state.session_factory() as s:
         assert s.scalar(select(Article).where(Article.number == 1)).price_cents == 150000
+
+
+def test_gesamtabrechnung_flags_sale_items_that_do_not_add_up(client):
+    _sell(client, 0, 1)
+    assert "Die Zahlen stimmen" in client.get("/gesamtabrechnung").text
+    with client.app.state.session_factory() as s:
+        s.execute(update(SaleItem).where(SaleItem.number == 1).values(price_cents=1))
+        s.commit()
+    assert "gehen nicht auf" in client.get("/gesamtabrechnung").text

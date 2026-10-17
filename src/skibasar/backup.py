@@ -149,7 +149,7 @@ class Backup:
                     x.created_at.isoformat(sep=" ", timespec="seconds") if x.created_at else "",
                     *_money(x.total_cents),
                     int(x.cancelled),
-                    " ".join(str(a.number) for a in sorted(x.articles, key=lambda a: a.number)),
+                    " ".join(str(i.number) for i in x.items),
                 ]
                 for x in s.scalars(select(Sale).order_by(Sale.id))
             ]

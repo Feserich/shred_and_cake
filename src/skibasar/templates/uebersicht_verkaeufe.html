@@ -17,7 +17,7 @@
   <tr class="{{ 'off' if sale.cancelled }}">
     <td class="num">{{ sale.id }}</td>
     <td>{{ sale.created_at.strftime("%d.%m.%Y %H:%M") }}</td>
-    <td>{{ sale.articles|map(attribute="number")|join(", ") }}</td>
+    <td>{{ sale.items|map(attribute="number")|join(", ") }}</td>
     <td class="num">{{ sale.total_cents|eur }}</td>
     <td>{% if sale.cancelled %}<span class="badge off">storniert</span>{% else %}<span class="badge ok">gültig</span>{% endif %}</td>
     <td><a href="/kasse/verkauf/{{ sale.id }}">Öffnen</a></td>

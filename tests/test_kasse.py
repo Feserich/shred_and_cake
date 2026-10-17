@@ -82,6 +82,26 @@ def test_storno_frees_articles(client):
     assert again.status_code == 409 and "schon storniert" in again.text
 
 
+def test_storno_keeps_the_items_on_sale_page_receipt_and_snapshot(client, tmp_path):
+    sale_id = _sell(client, 0, 2).headers["location"].split("/")[-1]
+    client.post(f"/kasse/verkauf/{sale_id}/storno")
+    with client.app.state.session_factory() as s:
+        sale = s.get(Sale, int(sale_id))
+        assert [(i.number, i.description, i.price_cents) for i in sale.items] == [
+            (0, "Ding 0", 1000),
+            (2, "Ding 2", 225),
+        ]
+        assert sale.articles == []
+    page = client.get(f"/kasse/verkauf/{sale_id}").text
+    assert "Ding 0" in page and "Ding 2" in page and "Storniert" in page
+    receipt = client.get(f"/kasse/verkauf/{sale_id}/beleg").text
+    assert "Ding 2" in receipt and "STORNIERT" in receipt
+    assert "0, 2" in client.get("/uebersicht/verkaeufe").text
+    client.app.state.backup.snapshot()
+    sales_csv = (tmp_path / "snapshots" / "sales.csv").read_text(encoding="utf-8-sig")
+    assert ";0 2" in sales_csv
+
+
 def test_settled_seller_blocks_sale_and_storno(client, tmp_path):
     sale_id = _sell(client, 0).headers["location"].split("/")[-1]
     from datetime import datetime

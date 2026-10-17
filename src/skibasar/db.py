@@ -48,9 +48,24 @@ def _upgrade(engine: Engine) -> None:
             )
 
 
+def _backfill_sale_items(engine: Engine) -> None:
+    """Items for sales made before sale_item existed; cancelled ones have lost their articles."""
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "INSERT INTO sale_item (sale_id, article_id, number, description, price_cents)"
+                " SELECT sale_id, id, number, description, price_cents FROM article"
+                " WHERE sale_id IS NOT NULL"
+                " AND NOT EXISTS"
+                " (SELECT 1 FROM sale_item WHERE sale_item.sale_id = article.sale_id)"
+            )
+        )
+
+
 def init_db(engine: Engine) -> sessionmaker[Session]:
     Base.metadata.create_all(engine)
     _upgrade(engine)
+    _backfill_sale_items(engine)
     factory = sessionmaker(engine, expire_on_commit=False)
     with factory() as s:
         if s.get(Event, 1) is None:

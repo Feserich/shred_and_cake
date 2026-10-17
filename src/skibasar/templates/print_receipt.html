@@ -6,8 +6,8 @@
 <p>Beleg Nr. {{ sale.id }} · {{ sale.created_at.strftime("%d.%m.%Y %H:%M") }}{% if sale.cancelled %} · <strong>STORNIERT</strong>{% endif %}</p>
 <table>
   <tr><th class="num">Nr.</th><th>Bezeichnung</th><th class="num">Preis</th></tr>
-  {% for art in sale.articles|sort(attribute="number") %}
-  <tr><td class="num">{{ art.number }}</td><td>{{ art.description }}</td><td class="num">{{ art.price_cents|eur }}</td></tr>
+  {% for item in sale.items %}
+  <tr><td class="num">{{ item.number }}</td><td>{{ item.description }}</td><td class="num">{{ item.price_cents|eur }}</td></tr>
   {% endfor %}
   <tr><th colspan="2">Summe</th><th class="num">{{ sale.total_cents|eur }}</th></tr>
 </table>
