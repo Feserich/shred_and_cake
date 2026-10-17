@@ -33,14 +33,14 @@ def test_search_by_name_article_number_and_shop_range(client):
     with client.app.state.session_factory() as s:
         s.add(
             Seller(
-                type=SellerType.shop, name="Krämer", number_range_start=1000, number_range_end=1999
+                type=SellerType.shop, name="Muster", number_range_start=1000, number_range_end=1999
             )
         )
         s.commit()
     assert "Huber" in client.get("/abholung?q=hub").text
     assert "Huber" in client.get("/abholung?q=2").text
-    assert "Krämer" not in client.get("/abholung?q=2").text
-    assert "Krämer" in client.get("/abholung?q=1500").text
+    assert "Muster" not in client.get("/abholung?q=2").text
+    assert "Muster" in client.get("/abholung?q=1500").text
     assert "Keine Verkäufer" in client.get("/abholung?q=zzz").text
 
 

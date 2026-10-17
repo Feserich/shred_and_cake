@@ -1,7 +1,8 @@
-# sce_skibasar
+# Shred and Cake
 
-Offline web application for the Ski Basar of our ski club. It replaces the old MS Access program
-(CasaBazar20) with a modern, easy-to-use solution that runs on a single laptop, with optional
+Offline web application for the Ski Basar of our ski club (Skiclub Ebenweiler 1974 e.V.).
+It replaces the old MS Access program (CasaBazar20) with a modern,
+easy-to-use solution that runs on a single laptop, with optional
 access from phones over the local WiFi.
 
 The user interface and printouts are in German; code and comments are in English.

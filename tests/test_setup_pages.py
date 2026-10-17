@@ -7,7 +7,7 @@ from skibasar.config import check_admin_pin
 from skibasar.main import create_app
 from skibasar.models import AuditLog, Event
 
-FIXTURE = Path(__file__).parent / "fixtures" / "shop_kraemer.csv"
+FIXTURE = Path(__file__).parent / "fixtures" / "shop_example.csv"
 
 
 @pytest.fixture
@@ -41,7 +41,7 @@ def test_settings_invalid(client):
 def test_shop_and_import_flow(client):
     r = client.post(
         "/haendler",
-        data={"name": "Krämer", "range_start": "1000", "range_end": "1999"},
+        data={"name": "Beispiel", "range_start": "1000", "range_end": "1999"},
         follow_redirects=False,
     )
     assert r.status_code == 303
@@ -82,7 +82,7 @@ def test_settled_shop_cannot_be_imported(client):
 
     r = client.post(
         "/haendler",
-        data={"name": "Sport Krämer", "range_start": "1000", "range_end": "1999"},
+        data={"name": "Sport Beispiel", "range_start": "1000", "range_end": "1999"},
         follow_redirects=False,
     )
     detail = r.headers["location"]

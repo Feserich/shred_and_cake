@@ -4,7 +4,7 @@
 The ski club runs its basar on "CasaBazar20", an old MS Access 2003 app that only runs on one old laptop and is hard to use. We replace it with an offline web app that anyone can use: FastAPI with server-rendered pages, shipped as a pre-built executable for Windows and Linux, and safe with money (integer cents only). It has a CSV fallback so the basar can carry on by hand if the software fails.
 
 The repo currently holds only `README.md` and the reference material in `ms_access/`:
-- `CSV_Skibazar_Krämer.csv`: `;`-separated, **Latin-1/cp1252**, CRLF line endings. Header `Artikelnummer;Ihre Artikelnummer;Artikelname;Marke;Grösse;Farbe;Preis_1`. Prices are German formatted with padding (`" 60,00  "`, `"2.545,00"`). The file ends with an empty row and a `Summe:` row, which the import must skip (and can use as a check against the imported total).
+- `CSV_Skibazar.csv`: `;`-separated, **Latin-1/cp1252**, CRLF line endings. Header `Artikelnummer;Ihre Artikelnummer;Artikelname;Marke;Grösse;Farbe;Preis_1`. Prices are German formatted with padding (`" 60,00  "`, `"2.545,00"`). The file ends with an empty row and a `Summe:` row, which the import must skip (and can use as a check against the imported total).
 - The old manual (`Anleitung Skibasarprogramm.odt`) describes the same flow: Annahme → Verkauf → Abholung → Gesamtabrechnung. It also covers fees paid at entry or left open ("off. Geb."), fee exemption for the teaching team, a separate "Artikel suchen" screen to fix mistakes, and the old "Abbrechen vs. Tür" trap. The new UI must make preview and commit explicit, separate steps.
 - Old MDB tables: `T_KUNDEN`, `T_UMSATZ` (with `PREIS_1`, `PREIS_2`, `Preis_TAT`) and `T_Parameter`. These are for reference only. We don't migrate the data.
 
@@ -110,18 +110,18 @@ src/skibasar/
   routers/              # setup, annahme, kasse, abholung, tabellen, reports
   templates/            # Jinja2 (base, screens, print/*.html)
   static/               # vendored htmx.min.js, alpine.min.js, pico.css, app.css, app.js, icons
-tests/                  # unit + TestClient integration tests, fixtures incl. the Krämer CSV
+tests/                  # unit + TestClient integration tests, fixtures incl. the example CSV
 packaging/skibasar.spec # PyInstaller spec
 packaging/build.sh      # local build script (Linux); build.ps1 for Windows
 docs/Anleitung.md       # German user guide + Notfallplan
 ```
-Housekeeping: add a `.gitignore` (data/, build/, dist/, `.~lock.*#`). Do not commit `ms_access/.~lock.CSV_Skibazar_Krämer.csv#`.
+Housekeeping: add a `.gitignore` (data/, build/, dist/, `.~lock.*#`). Do not commit `ms_access/.~lock.CSV_Skibazar.csv#`.
 
 ## Milestones
 1. **M0 Scaffold:** pyproject (uv), FastAPI hello page, ruff, pytest, `.gitignore`.
 2. **M1 Core:** `money.py`, `fees.py` and the models plus numbering service, with exhaustive unit tests (rounding edge cases, negative payouts, exemptions, range overlaps).
 3. **M2 UI foundation:** the base layout, navigation with step indicator, design system (`app.css`), form components, price input mask, toast/feedback, confirmation dialogs and the print stylesheet.
-4. **M2b Setup + CSV import:** settings screens, shop management, and an import with preview, tested against the real `CSV_Skibazar_Krämer.csv` (41 articles, total 2.545,00 €).
+4. **M2b Setup + CSV import:** settings screens, shop management, and an import with preview, tested against the real `CSV_Skibazar.csv` (41 articles, total 2.545,00 €).
 5. **M3 Annahme:** seller entry, fast article entry, A4 seller list print.
 6. **M4 Kasse:** checkout, storno, receipt print, concurrency guard against double-selling. Then a **usability click-through** of Annahme and Kasse with 2–3 non-technical volunteers; fix findings before continuing.
 7. **M5 Abholung/Abrechnung:** settlement preview, then commit, plus the invoice print.

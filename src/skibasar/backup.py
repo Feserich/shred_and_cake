@@ -49,6 +49,7 @@ class Backup:
         self.backup_dir = self.dir / "backups"
         self.factory = factory
         self._lock = threading.Lock()
+        self._snapshot_lock = threading.Lock()
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
         self.snapshot_dir.mkdir(parents=True, exist_ok=True)
@@ -104,6 +105,11 @@ class Backup:
 
     # -- snapshots -------------------------------------------------------
     def snapshot(self) -> Path:
+        """Write the CSV snapshots; serialized, as the backup thread and settle hook share .tmp."""
+        with self._snapshot_lock:
+            return self._snapshot()
+
+    def _snapshot(self) -> Path:
         with self.factory() as s:
             sellers = [
                 [

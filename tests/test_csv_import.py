@@ -8,7 +8,7 @@ from skibasar.models import Article, ArticleStatus, AuditLog, Seller
 from skibasar.services import shops
 from skibasar.services.numbering import RangeError
 
-FIXTURE = Path(__file__).parent / "fixtures" / "shop_kraemer.csv"
+FIXTURE = Path(__file__).parent / "fixtures" / "shop_example.csv"
 HEADER = "Artikelnummer;Ihre Artikelnummer;Artikelname;Marke;Grösse;Farbe;Preis_1\r\n"
 
 
@@ -64,7 +64,7 @@ def test_total_mismatch_and_missing_columns():
 
 @pytest.fixture
 def shop(session):
-    return shops.save_shop(session, None, name="Krämer", range_start=1000, range_end=1999)
+    return shops.save_shop(session, None, name="Beispiel", range_start=1000, range_end=1999)
 
 
 def test_import_roundtrip_and_reimport(session, shop):

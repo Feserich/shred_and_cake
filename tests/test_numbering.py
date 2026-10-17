@@ -36,7 +36,7 @@ def test_private_numbers_increment(session):
 
 
 def test_private_numbers_skip_shop_ranges(session):
-    add_shop(session, "Krämer", 2, 5)
+    add_shop(session, "Beispiel", 2, 5)
     add_shop(session, "Baumhauer", 6, 9)
     add_private_article(session, 0)
     add_private_article(session, 1)
@@ -44,21 +44,21 @@ def test_private_numbers_skip_shop_ranges(session):
 
 
 def test_shop_articles_do_not_affect_private_counter(session):
-    shop = add_shop(session, "Krämer", 1000, 1999)
+    shop = add_shop(session, "Beispiel", 1000, 1999)
     session.add(Article(number=1000, seller=shop, description="Ski", price_cents=6000))
     session.commit()
     assert next_private_number(session) == 0
 
 
 def test_overlapping_shop_ranges_rejected(session):
-    add_shop(session, "Krämer", 1000, 1999)
-    with pytest.raises(RangeError, match="Krämer"):
+    add_shop(session, "Beispiel", 1000, 1999)
+    with pytest.raises(RangeError, match="Beispiel"):
         validate_shop_range(session, 1500, 2500)
     validate_shop_range(session, 2000, 2999)
 
 
 def test_shop_range_can_be_edited_in_place(session):
-    shop = add_shop(session, "Krämer", 1000, 1999)
+    shop = add_shop(session, "Beispiel", 1000, 1999)
     validate_shop_range(session, 1000, 1499, exclude_seller_id=shop.id)
 
 

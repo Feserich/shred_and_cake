@@ -1,5 +1,6 @@
 import csv
 import sqlite3
+import threading
 
 import pytest
 from fastapi.testclient import TestClient
@@ -37,6 +38,26 @@ def test_snapshot_csv_has_cents_and_formatted(client, tmp_path):
     assert rows[1][6:8] == ["6050", "60,50"]
     assert rows[1][9] == "sold"
     assert _rows(tmp_path / "data" / "snapshots" / "sales.csv")[1][2:4] == ["6050", "60,50"]
+
+
+def test_concurrent_snapshots_do_not_collide(client, tmp_path):
+    b = client.app.state.backup
+    errors = []
+
+    def run():
+        try:
+            for _ in range(5):
+                b.snapshot()
+        except Exception as e:  # noqa: BLE001
+            errors.append(e)
+
+    threads = [threading.Thread(target=run) for _ in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert not errors
+    assert not list((tmp_path / "data" / "snapshots").glob("*.tmp"))
 
 
 def test_sqlite_backup_is_consistent_and_rotates(client):
