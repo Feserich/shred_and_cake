@@ -23,6 +23,8 @@ The end-user manual (German) is in [docs/Anleitung.md](docs/Anleitung.md).
 5. **Übersicht / Gesamtabrechnung:** Tables for sellers, articles and sales allow manual
    corrections at any time (every change is logged); the overall settlement shows totals for the
    whole Basar.
+6. **Abschluss:** Cake income, change money of the two checkouts and expenditures are entered;
+   the page shows the profit of the Basar, of the cake sale and overall, plus a cash check.
 
 ## Features
 

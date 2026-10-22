@@ -18,7 +18,17 @@ from . import __version__, config
 from .backup import Backup
 from .db import init_db, make_engine
 from .network import lan_url, qr_terminal
-from .routers import abholung, annahme, kasse, reports, setup, sicherung, uebersicht, zugang
+from .routers import (
+    abholung,
+    abschluss,
+    annahme,
+    kasse,
+    reports,
+    setup,
+    sicherung,
+    uebersicht,
+    zugang,
+)
 
 
 def create_app(
@@ -49,6 +59,7 @@ def create_app(
     app.include_router(kasse.router)
     app.include_router(abholung.router)
     app.include_router(uebersicht.router)
+    app.include_router(abschluss.router)
     app.include_router(reports.router)
     app.include_router(sicherung.router)
     app.include_router(zugang.router)

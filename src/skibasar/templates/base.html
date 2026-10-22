@@ -12,7 +12,7 @@
 </head>
 <body>
   {% set on_laptop = request.client and request.client.host in ("127.0.0.1", "::1", "localhost") %}
-  {% set steps = [("/annahme", "1", "Annahme", true), ("/kasse", "2", "Kasse", true)] + ([("/abholung", "3", "Abholung", true), ("/uebersicht", "4", "Übersicht", true)] if on_laptop else []) %}
+  {% set steps = [("/annahme", "1", "Annahme", true), ("/kasse", "2", "Kasse", true)] + ([("/abholung", "3", "Abholung", true), ("/uebersicht", "4", "Übersicht", true), ("/abschluss", "5", "Abschluss", true)] if on_laptop else []) %}
   <header class="app-bar no-print">
     <nav class="container">
       <a class="brand" href="/">⛷ Skibasar</a>

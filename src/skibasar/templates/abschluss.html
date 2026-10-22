@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Abschluss{% endblock %}
+{% block content %}
+{% set cats = {"bazaar": "Basar", "cake": "Kuchen"} %}
+<div class="no-print">
+  <h1>Abschluss</h1>
+  <p class="hint">Letzter Schritt: Kuchenerlös, Wechselgeld und Ausgaben eintragen. Unten steht der Gewinn.</p>
+  {% if saved %}<div data-toast="ok">Gespeichert.</div>{% endif %}
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <form method="post" action="/abschluss" data-enter-advance>
+    <h2>Kuchenverkauf</h2>
+    <label>Einnahmen aus dem Kuchenverkauf (€) <input name="cake_income" data-price inputmode="decimal" value="{{ f.cake_income }}"></label>
+    <h2>Wechselgeld und Kassensturz</h2>
+    <p class="hint">Das Wechselgeld gehört dem Verein und ist kein Gewinn. Nach dem Basar den Inhalt jeder Kasse zählen (inklusive Wechselgeld) – dann prüft das Programm, ob nichts fehlt.</p>
+    <div class="grid">
+      <label>Wechselgeld Kasse 1 (€) <input name="float_1" data-price inputmode="decimal" value="{{ f.float_1 }}"></label>
+      <label>Wechselgeld Kasse 2 (€) <input name="float_2" data-price inputmode="decimal" value="{{ f.float_2 }}"></label>
+    </div>
+    <div class="grid">
+      <label>Gezählt in Kasse 1 (€) <input name="cash_1" data-price inputmode="decimal" value="{{ f.cash_1 }}"></label>
+      <label>Gezählt in Kasse 2 (€) <input name="cash_2" data-price inputmode="decimal" value="{{ f.cash_2 }}"></label>
+    </div>
+    <button type="submit">Speichern</button>
+  </form>
+
+  <h2 id="ausgaben">Ausgaben</h2>
+  {% if expense_error %}<p class="error">{{ expense_error }}</p>{% endif %}
+  <form method="post" action="/abschluss/ausgaben">
+    <label>Wofür? <input name="description" value="{{ e.description }}" placeholder="z. B. Plakate, Kuchenzutaten, Raummiete" required></label>
+    <div class="grid">
+      <label>Betrag (€) <input name="amount" data-price inputmode="decimal" value="{{ e.amount }}" required></label>
+      <label>Gehört zu
+        <select name="category">
+          <option value="bazaar" {% if e.category == "bazaar" %}selected{% endif %}>Basar</option>
+          <option value="cake" {% if e.category == "cake" %}selected{% endif %}>Kuchenverkauf</option>
+        </select>
+      </label>
+    </div>
+    <label><input type="checkbox" name="paid_from_till" {% if e.paid_from_till %}checked{% endif %}> Bar aus einer Kasse bezahlt</label>
+    <button type="submit">Ausgabe hinzufügen</button>
+  </form>
+</div>
+
+<h1 class="print-only">{{ event.name }}</h1>
+<h2 class="print-only">Abschluss</h2>
+
+{% if r.expenses %}
+<div class="table-wrap"><table>
+  <tr><th>Ausgabe</th><th>Gehört zu</th><th class="num">Betrag</th><th class="no-print"></th></tr>
+  {% for x in r.expenses %}
+  <tr>
+    <td>{{ x.description }}{% if x.paid_from_till %} <span class="muted">(aus der Kasse)</span>{% endif %}</td>
+    <td>{{ cats[x.category.value] }}</td>
+    <td class="num">{{ x.amount_cents|eur }}</td>
+    <td class="no-print"><form method="post" action="/abschluss/ausgaben/{{ x.id }}/loeschen" data-confirm="Ausgabe „{{ x.description }}“ ({{ x.amount_cents|eur }}) wirklich löschen?"><button type="submit" class="secondary">Löschen</button></form></td>
+  </tr>
+  {% endfor %}
+  <tr><th colspan="2">Ausgaben gesamt</th><th class="num">{{ (r.bazaar_expenses_cents + r.cake_expenses_cents)|eur }}</th><th class="no-print"></th></tr>
+</table></div>
+{% else %}
+<p class="muted no-print">Noch keine Ausgaben eingetragen.</p>
+{% endif %}
+
+<h2>Ergebnis</h2>
+{% if r.open_sellers %}
+<p class="warn" role="status">Achtung: {{ r.open_sellers }} Verkäufer {{ "ist" if r.open_sellers == 1 else "sind" }} noch nicht abgerechnet. Deren Provision fehlt im Ergebnis noch.</p>
+{% endif %}
+{% if not r.reconciles %}
+<p class="error" role="status">Achtung: Die Zahlen in der Gesamtabrechnung gehen nicht auf – bitte dort prüfen!</p>
+{% endif %}
+
+<h3>Basar</h3>
+<table>
+  <tr><td>Einnahmen des Vereins (Provision und Gebühren)</td><td class="num">{{ r.club_income_cents|eur }}</td></tr>
+  <tr><td>Ausgaben Basar</td><td class="num">− {{ r.bazaar_expenses_cents|eur }}</td></tr>
+  <tr><th>Gewinn Basar</th><th class="num">{{ r.bazaar_profit_cents|eur }}</th></tr>
+</table>
+
+<h3>Kuchenverkauf</h3>
+<table>
+  <tr><td>Einnahmen</td><td class="num">{{ r.cake_income_cents|eur }}</td></tr>
+  <tr><td>Ausgaben Kuchen</td><td class="num">− {{ r.cake_expenses_cents|eur }}</td></tr>
+  <tr><th>Gewinn Kuchenverkauf</th><th class="num">{{ r.cake_profit_cents|eur }}</th></tr>
+</table>
+
+<h3>Gesamt</h3>
+<table>
+  <tr><th>Gewinn insgesamt (Basar + Kuchen)</th><th class="num">{{ r.total_profit_cents|eur }}</th></tr>
+</table>
+
+<h3>Kassensturz</h3>
+<table>
+  <tr><td>Wechselgeld (Kasse 1 + Kasse 2)</td><td class="num">{{ r.float_cents|eur }}</td></tr>
+  <tr><td>Erwarteter Inhalt beider Kassen</td><td class="num">{{ r.expected_cash_cents|eur }}</td></tr>
+  {% if r.counted_cash_cents is none %}
+  <tr><td colspan="2" class="muted">Noch nicht gezählt – oben den Inhalt beider Kassen eintragen.</td></tr>
+  {% else %}
+  <tr><td>Gezählt</td><td class="num">{{ r.counted_cash_cents|eur }}</td></tr>
+  <tr><th>Differenz</th><th class="num {{ 'ok' if r.cash_difference_cents == 0 else 'error' }}">{{ r.cash_difference_cents|eur }}</th></tr>
+  {% endif %}
+</table>
+<p class="hint">Erwartet = Wechselgeld + Verkäufe + bei der Annahme bezahlte Gebühren − bereits ausgezahlte Beträge − bar aus der Kasse bezahlte Ausgaben. Der Kuchenverkauf zählt hier nicht mit.</p>
+<p class="no-print"><button type="button" onclick="window.print()">Drucken</button></p>
+{% endblock %}

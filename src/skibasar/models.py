@@ -145,6 +145,42 @@ class Article(Base):
     sale: Mapped[Sale | None] = relationship(back_populates="articles")
 
 
+class Closing(Base):
+    """Inputs of the final settlement (Abschluss) that are not derived from sales (single row)."""
+
+    __tablename__ = "closing"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    cake_income_cents: Mapped[int] = mapped_column(Integer, default=0)
+    # Change money (Wechselgeld) put into each checkout; it belongs to the club and is no profit
+    float_1_cents: Mapped[int] = mapped_column(Integer, default=0)
+    float_2_cents: Mapped[int] = mapped_column(Integer, default=0)
+    # Counted cash at the end including the float; None = not counted yet
+    cash_1_cents: Mapped[int | None] = mapped_column(Integer)
+    cash_2_cents: Mapped[int | None] = mapped_column(Integer)
+
+
+class ExpenseCategory(enum.StrEnum):
+    bazaar = "bazaar"
+    cake = "cake"
+
+
+class Expense(Base):
+    """An expenditure for organising the Basar or the cake sale."""
+
+    __tablename__ = "expense"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    description: Mapped[str] = mapped_column(String(200))
+    amount_cents: Mapped[int] = mapped_column(Integer)
+    category: Mapped[ExpenseCategory] = mapped_column(
+        Enum(ExpenseCategory), default=ExpenseCategory.bazaar
+    )
+    # Paid in cash out of a checkout, so the cash check has to expect less money in it
+    paid_from_till: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
 class AuditLog(Base):
     __tablename__ = "audit_log"
 
