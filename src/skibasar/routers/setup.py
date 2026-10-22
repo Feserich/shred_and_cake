@@ -101,7 +101,7 @@ def settings_save(
     request: Request,
     name: str = Form(...),
     event_date: str = Form(""),
-    private_number_start: str = Form("0"),
+    private_number_start: str = Form(""),
     offer_fee_private: str = Form("0"),
     commission_private: str = Form("0"),
     offer_fee_shop: str = Form("0"),
@@ -112,12 +112,14 @@ def settings_save(
 
     form = {k: v for k, v in locals().items() if k not in ("request", "s", "date")}
     try:
-        if not private_number_start.strip().isdigit():
+        start = private_number_start.strip()
+        if start and not start.isdigit():
             raise MoneyError("Ungültige Startnummer")
         values = {
             "name": name.strip() or "Skibasar",
             "event_date": date.fromisoformat(event_date) if event_date else None,
-            "private_number_start": int(private_number_start),
+            # Left empty: keep the current start number
+            "private_number_start": int(start) if start else s.get(Event, 1).private_number_start,
             "offer_fee_private_cents": parse_eur(offer_fee_private or "0"),
             "commission_private_bp": parse_percent_bp(commission_private or "0"),
             "offer_fee_shop_cents": parse_eur(offer_fee_shop or "0"),

@@ -39,7 +39,7 @@ class Event(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(200), default="Skibasar")
     event_date: Mapped[date | None] = mapped_column(Date)
-    private_number_start: Mapped[int] = mapped_column(Integer, default=0)
+    private_number_start: Mapped[int] = mapped_column(Integer, default=1)
     offer_fee_private_cents: Mapped[int] = mapped_column(Integer, default=100)
     commission_private_bp: Mapped[int] = mapped_column(Integer, default=1000)
     offer_fee_shop_cents: Mapped[int] = mapped_column(Integer, default=0)
@@ -100,6 +100,20 @@ class Seller(Base):
     def fee_units_open(self) -> int:
         """Fee units still to be paid (at entry or deducted at settlement)."""
         return 0 if self.fee_exempt else self.fee_units - self.fee_units_paid
+
+    @property
+    def fee_cash_at_entry_cents(self) -> int:
+        """Cash taken at entry; stays counted when an article it covered is removed later."""
+        if not self.offer_fee_paid_at_entry:
+            return 0
+        units = self.fee_units if self.offer_fee_paid_units is None else self.offer_fee_paid_units
+        return (self.offer_fee_paid_cents or 0) * units
+
+    def offer_fee_cents(self, event: "Event") -> int:
+        """Fee per unit: once paid at entry, the seller keeps that rate for the rest as well."""
+        if self.offer_fee_paid_at_entry and self.offer_fee_paid_cents is not None:
+            return self.offer_fee_paid_cents
+        return event.offer_fee_cents(self.type)
 
     @property
     def display_name(self) -> str:
@@ -166,8 +180,10 @@ class Closing(Base):
     __tablename__ = "closing"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    # No longer used: the cake income is now derived from counting the cake till (cash_2)
     cake_income_cents: Mapped[int] = mapped_column(Integer, default=0)
-    # Change money (Wechselgeld) put into each checkout; it belongs to the club and is no profit
+    # Change money (Wechselgeld); it belongs to the club and is no profit.
+    # Till 1 is the Basar checkout (also Annahme fees and Abholung payouts), till 2 the cake sale.
     float_1_cents: Mapped[int] = mapped_column(Integer, default=0)
     float_2_cents: Mapped[int] = mapped_column(Integer, default=0)
     # Counted cash at the end including the float; None = not counted yet
@@ -191,7 +207,7 @@ class Expense(Base):
     category: Mapped[ExpenseCategory] = mapped_column(
         Enum(ExpenseCategory), default=ExpenseCategory.bazaar
     )
-    # Paid in cash out of a checkout, so the cash check has to expect less money in it
+    # Paid in cash out of the till of its category (Basar or cake), which then holds less money
     paid_from_till: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 

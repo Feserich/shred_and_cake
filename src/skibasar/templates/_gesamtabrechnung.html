@@ -1,14 +1,6 @@
-{% extends "base.html" %}
-{% block title %}Gesamtabrechnung{% endblock %}
-{% block content %}
+{# Basar-Gesamtabrechnung, included on the Abschluss page; expects the reports.Report as r #}
 {% set names = {"private": "Privatverkäufer", "shop": "Händler"} %}
-<div class="no-print">
-  <h1>Übersicht</h1>
-  {% include "uebersicht_tabs.html" %}
-  <p><button type="button" onclick="window.print()">Drucken</button></p>
-</div>
-<h1 class="print-only">{{ event.name }}</h1>
-<h2>Gesamtabrechnung</h2>
+<h2 id="gesamtabrechnung">Basar-Gesamtabrechnung</h2>
 <p class="{{ 'ok' if r.reconciles else 'error' }}" role="status">
   {% if r.reconciles %}Die Zahlen stimmen: Verkäufe = Auszahlungen + Provision + abgezogene Gebühren (+ noch nicht abgerechnet).{% else %}Achtung: Die Zahlen gehen nicht auf – bitte prüfen!{% endif %}
 </p>
@@ -57,4 +49,3 @@
   <tr><td colspan="4" class="muted">Alle Verkäufer sind abgerechnet.</td></tr>
   {% endfor %}
 </table>
-{% endblock %}

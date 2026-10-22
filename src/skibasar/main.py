@@ -17,6 +17,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from . import __version__, config
 from .backup import Backup
 from .db import init_db, make_engine
+from .models import Event
 from .network import lan_url, qr_terminal
 from .routers import (
     abholung,
@@ -66,7 +67,9 @@ def create_app(
 
     @app.get("/", response_class=HTMLResponse)
     def index(request: Request):
-        return setup.templates.TemplateResponse(request, "index.html")
+        with app.state.session_factory() as s:
+            pin_missing = not config.admin_pin_configured(s.get(Event, 1).admin_pin_hash)
+        return setup.templates.TemplateResponse(request, "index.html", {"pin_missing": pin_missing})
 
     _install_error_pages(app)
     return app

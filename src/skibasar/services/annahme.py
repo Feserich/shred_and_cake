@@ -50,6 +50,12 @@ def save_private_seller(
         raise AnnahmeError("Name fehlt")
     if seller is not None and seller.settled_at is not None:
         raise AnnahmeError("Der Verkäufer ist bereits abgerechnet")
+    if fee_exempt and seller is not None and seller.offer_fee_paid_at_entry:
+        raise AnnahmeError(
+            f"Es wurden schon {format_eur(seller.fee_cash_at_entry_cents)} Angebotsgebühr "
+            "kassiert. Bitte das Geld zurückgeben und in der Übersicht beim Verkäufer "
+            "„Angebotsgebühr bezahlt“ entfernen – dann kann er gebührenfrei werden."
+        )
     texts = {"name": name, "first_name": first_name, "phone": phone, "email": email}
     texts |= {"address": address, "notes": notes}
     values = {k: texts[k].strip() for k in _SELLER_FIELDS}
@@ -93,17 +99,19 @@ def collect_fee(s: Session, seller: Seller, client: str = "") -> int:
     units = seller.fee_units_open
     if units == 0:
         raise AnnahmeError("Es ist nichts zu bezahlen")
-    fee = s.get(Event, 1).offer_fee_private_cents
+    fee = seller.offer_fee_cents(s.get(Event, 1))
     before = {
         "paid": seller.offer_fee_paid_at_entry,
         "paid_cents": seller.offer_fee_paid_cents,
         "paid_units": seller.offer_fee_paid_units,
     }
+    # Units already paid for stay paid, also if an article was removed since
+    paid_units = seller.fee_units - units
+    if seller.offer_fee_paid_units is not None:
+        paid_units = max(paid_units, seller.offer_fee_paid_units)
     seller.offer_fee_paid_at_entry = True
-    seller.offer_fee_paid_cents = (
-        fee if seller.offer_fee_paid_cents is None else (seller.offer_fee_paid_cents)
-    )
-    seller.offer_fee_paid_units = seller.fee_units
+    seller.offer_fee_paid_cents = fee
+    seller.offer_fee_paid_units = paid_units + units
     after = {
         "paid": True,
         "paid_cents": seller.offer_fee_paid_cents,
@@ -209,12 +217,12 @@ def fee_status(event: Event, seller: Seller) -> str:
     """Human readable (German) offer fee status for screens and the printed list."""
     if seller.fee_exempt:
         return "Keine Angebotsgebühr (Provision wird berechnet)"
-    fee = event.offer_fee_cents(seller.type)
+    fee = seller.offer_fee_cents(event)
     open_text = (
         f"{format_eur(fee * seller.fee_units_open)} offen (wird bei der Abrechnung abgezogen)"
     )
     if seller.offer_fee_paid_at_entry:
-        paid = format_eur((seller.offer_fee_paid_cents or 0) * seller.fee_units_paid)
+        paid = format_eur(seller.fee_cash_at_entry_cents)
         if seller.fee_units_open:
             return f"Angebotsgebühr {paid} bezahlt, weitere {open_text}"
         return f"Angebotsgebühr {paid} bezahlt"

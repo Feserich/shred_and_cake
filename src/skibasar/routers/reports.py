@@ -1,17 +1,11 @@
-"""Gesamtabrechnung (final report) and its print view."""
+"""Old address of the Gesamtabrechnung; it is now part of the Abschluss page."""
 
-from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse
-from sqlalchemy.orm import Session
-
-from ..models import Event
-from ..services import reports
-from .setup import get_session, templates
+from fastapi import APIRouter
+from fastapi.responses import RedirectResponse
 
 router = APIRouter(prefix="/gesamtabrechnung")
 
 
-@router.get("", response_class=HTMLResponse)
-def report(request: Request, s: Session = Depends(get_session)):
-    ctx = {"r": reports.build(s), "event": s.get(Event, 1), "tab": "gesamt"}
-    return templates.TemplateResponse(request, "gesamtabrechnung.html", ctx)
+@router.get("")
+def report():
+    return RedirectResponse("/abschluss#gesamtabrechnung", status_code=303)

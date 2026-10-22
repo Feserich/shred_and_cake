@@ -178,3 +178,72 @@ def test_collect_fee_in_annahme(client):
     page = client.get(url).text
     assert "Gebühr 2,50 € kassiert" in page
     assert "5,00 € bezahlt, weitere 2,50 € offen" in page
+
+
+def _fee_at_entry(client):
+    from skibasar.services import reports
+
+    with client.app.state.session_factory() as s:
+        return reports.build(s).fee_at_entry_cents
+
+
+def test_undo_after_fee_collected_keeps_the_cash_recorded(client):
+    client.post("/einstellungen", data={"name": "B", "offer_fee_private": "1,00"})
+    url = _seller(client)
+    for n in range(3):
+        _article(client, url, n)
+    client.post(f"{url}/gebuehr")
+    client.post(f"{url}/artikel/zurueck")
+    # 3,00 € are in the till, even though only 2 articles are left
+    assert _fee_at_entry(client) == 300
+    assert "Angebotsgebühr 3,00 € bezahlt" in client.get(url).text
+    # The re-entered article is covered by the earlier payment, nothing more to pay
+    _article(client, url, 2)
+    assert "für alle 3 Artikel bezahlt" in client.get(url).text
+    _article(client, url, 3)
+    client.post(f"{url}/gebuehr")
+    assert _fee_at_entry(client) == 400
+
+
+def test_fee_change_between_two_payments_keeps_the_seller_rate(client):
+    client.post("/einstellungen", data={"name": "B", "offer_fee_private": "1,00"})
+    url = _seller(client)
+    for n in range(3):
+        _article(client, url, n)
+    client.post(f"{url}/gebuehr")
+    client.post("/einstellungen", data={"name": "B", "offer_fee_private": "2,00"})
+    _article(client, url, 3)
+    _article(client, url, 4)
+    page = client.get(url).text
+    assert "Gebühr 2,00 € kassiert" in page and "weitere 2,00 € offen" in page
+    client.post(f"{url}/gebuehr")
+    assert _fee_at_entry(client) == 500
+    # A seller who has not paid yet pays the new rate
+    other = _seller(client, name="Maier")
+    _article(client, other, 5)
+    assert "Gebühr 2,00 € kassiert" in client.get(other).text
+
+
+def test_paid_seller_cannot_silently_become_fee_exempt(client):
+    client.post("/einstellungen", data={"name": "B", "offer_fee_private": "1,00"})
+    url = _seller(client)
+    _article(client, url, 0)
+    client.post(f"{url}/gebuehr")
+    r = client.post(url, data={"name": "Huber", "fee_exempt": "on"})
+    assert r.status_code == 422 and "1,00 € Angebotsgebühr kassiert" in r.text
+    assert _fee_at_entry(client) == 100
+    # Both flags at once are refused in the Übersicht; refund = untick "paid", then exempt
+    data = {"name": "Huber", "fee_exempt": "on", "offer_fee_paid_at_entry": "on"}
+    assert client.post("/uebersicht/verkaeufer/1", data=data).status_code == 422
+    client.post("/uebersicht/verkaeufer/1", data={"name": "Huber", "fee_exempt": "on"})
+    assert _fee_at_entry(client) == 0
+
+
+def test_paid_ticked_before_any_article_does_not_cover_later_ones(client):
+    client.post("/einstellungen", data={"name": "B", "offer_fee_private": "1,00"})
+    url = _seller(client)
+    client.post("/uebersicht/verkaeufer/1", data={"name": "Huber", "offer_fee_paid_at_entry": "on"})
+    for n in range(2):
+        _article(client, url, n)
+    assert _fee_at_entry(client) == 0
+    assert "Gebühr 2,00 € kassiert" in client.get(url).text

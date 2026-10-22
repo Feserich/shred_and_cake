@@ -20,11 +20,12 @@ The end-user manual (German) is in [docs/Anleitung.md](docs/Anleitung.md).
    them as sold. A receipt can optionally be printed.
 4. **Abholung (afternoon):** Sellers and shops pick up unsold articles and their payout. Offer fee
    and commission (different for shops and individuals) are deducted; an invoice is printed.
-5. **Übersicht / Gesamtabrechnung:** Tables for sellers, articles and sales allow manual
-   corrections at any time (every change is logged); the overall settlement shows totals for the
-   whole Basar.
-6. **Abschluss:** Cake income, change money of the two checkouts and expenditures are entered;
-   the page shows the profit of the Basar, of the cake sale and overall, plus a cash check.
+5. **Übersicht:** Tables for sellers, articles and sales allow manual corrections at any time
+   (every change is logged).
+6. **Abschluss:** Change money and counted cash of the Basar till and the cake till plus the
+   expenditures are entered; the page shows the profit of the Basar, of the cake sale (derived
+   from the counted cake till) and overall, a cash check of the Basar till and, below, the
+   Basar-Gesamtabrechnung with totals for the whole Basar.
 
 ## Features
 

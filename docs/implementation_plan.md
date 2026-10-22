@@ -72,7 +72,7 @@ The users are club volunteers with no technical background, often working fast a
   The payout can be negative, for example when nothing sold and the fee is still open. The invoice then shows "Seller pays X".
 
 ## Data model (`models.py`)
-- **Event:** name, date, `private_number_start` (default 0), `offer_fee_private_cents`, `commission_private_bp`, `offer_fee_shop_cents`, `commission_shop_bp`.
+- **Event:** name, date, `private_number_start` (default 1), `offer_fee_private_cents`, `commission_private_bp`, `offer_fee_shop_cents`, `commission_shop_bp`.
 - **Seller:** id, type (`private`|`shop`), name, first name, phone/email/address (optional), `number_range_start/end` (shops), `fee_exempt`, `offer_fee_paid_at_entry`, `settled_at`, notes.
 - **Article:** `number` (unique), seller_id, description, brand, size, color, `price_cents`, `shop_ref` ("Ihre Artikelnummer"), status (`available` | `sold` | `returned` | `withdrawn`), sale_id, timestamps.
 - **Sale:** id, created_at, total_cents, cancelled flag (storno keeps the record and frees the articles).

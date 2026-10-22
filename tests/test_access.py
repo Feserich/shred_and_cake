@@ -124,3 +124,21 @@ def test_start_page_buttons_depend_on_device(tmp_path):
 def test_telefon_page_has_no_command_line_hint(tmp_path):
     text = _client(tmp_path, host="127.0.0.1").get("/telefon").text
     assert "Skibasar-mit-Telefonen.bat" in text and "--lan" not in text
+
+
+def test_start_page_asks_for_admin_pin_until_one_is_set(tmp_path):
+    c = _client(tmp_path, host="127.0.0.1")
+    assert "noch keine Admin-PIN eingerichtet" in c.get("/").text
+    c.post("/einstellungen/admin-pin", data={"new_pin": "4711"})
+    page = c.get("/").text
+    assert "noch keine Admin-PIN eingerichtet" not in page and "(erledigt)" in page
+
+
+def test_gesamtabrechnung_is_part_of_the_abschluss_page(tmp_path):
+    c = _client(tmp_path, host="127.0.0.1")
+    r = c.get("/gesamtabrechnung", follow_redirects=False)
+    assert r.headers["location"] == "/abschluss#gesamtabrechnung"
+    page = c.get("/abschluss").text
+    assert '<span class="step-n">5</span>Abschluss' in page
+    assert 'href="/gesamtabrechnung"' not in page
+    assert page.index("<h2>Ergebnis</h2>") < page.index('<h2 id="gesamtabrechnung">')

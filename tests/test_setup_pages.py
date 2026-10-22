@@ -134,3 +134,19 @@ def test_env_admin_pin_overrides_and_locks_form(client, monkeypatch):
     with client.app.state.session_factory() as s:
         assert check_admin_pin("1234", s.get(Event, 1).admin_pin_hash)
         assert not check_admin_pin("4711", s.get(Event, 1).admin_pin_hash)
+
+
+def test_new_event_starts_private_numbers_at_1(tmp_path, monkeypatch):
+    monkeypatch.undo()  # drop the conftest patch that keeps old tests at 0
+    c = TestClient(create_app(tmp_path / "fresh.db"))
+    c.post("/annahme/verkaeufer", data={"name": "Huber"})
+    r = c.post(
+        "/annahme/1/artikel",
+        data={"expected_number": "1", "description": "Ski", "price": "10"},
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    # Saving the settings without the start number keeps it
+    c.post("/einstellungen", data={"name": "Basar"})
+    with c.app.state.session_factory() as s:
+        assert s.get(Event, 1).private_number_start == 1

@@ -4,21 +4,22 @@
 {% set cats = {"bazaar": "Basar", "cake": "Kuchen"} %}
 <div class="no-print">
   <h1>Abschluss</h1>
-  <p class="hint">Letzter Schritt: Kuchenerlös, Wechselgeld und Ausgaben eintragen. Unten steht der Gewinn.</p>
+  <p class="hint">Letzter Schritt: Wechselgeld und Inhalt beider Kassen sowie die Ausgaben eintragen. Unten stehen der Gewinn und die Basar-Gesamtabrechnung.</p>
   {% if saved %}<div data-toast="ok">Gespeichert.</div>{% endif %}
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
   <form method="post" action="/abschluss" data-enter-advance>
-    <h2>Kuchenverkauf</h2>
-    <label>Einnahmen aus dem Kuchenverkauf (€) <input name="cake_income" data-price inputmode="decimal" value="{{ f.cake_income }}"></label>
-    <h2>Wechselgeld und Kassensturz</h2>
-    <p class="hint">Das Wechselgeld gehört dem Verein und ist kein Gewinn. Nach dem Basar den Inhalt jeder Kasse zählen (inklusive Wechselgeld) – dann prüft das Programm, ob nichts fehlt.</p>
+    <p class="hint">Das Wechselgeld gehört dem Verein und ist kein Gewinn. Nach dem Basar den Inhalt jeder Kasse zählen (inklusive Wechselgeld).</p>
+    <h2>Basar-Kasse</h2>
+    <p class="hint">Verkäufe, bei der Annahme kassierte Gebühren und Auszahlungen bei der Abholung. Das Programm prüft, ob nichts fehlt.</p>
     <div class="grid">
-      <label>Wechselgeld Kasse 1 (€) <input name="float_1" data-price inputmode="decimal" value="{{ f.float_1 }}"></label>
-      <label>Wechselgeld Kasse 2 (€) <input name="float_2" data-price inputmode="decimal" value="{{ f.float_2 }}"></label>
+      <label>Wechselgeld (€) <input name="float_1" data-price inputmode="decimal" value="{{ f.float_1 }}"></label>
+      <label>Gezählt am Ende (€) <input name="cash_1" data-price inputmode="decimal" value="{{ f.cash_1 }}"></label>
     </div>
+    <h2>Kuchen-Kasse</h2>
+    <p class="hint">Der Erlös des Kuchenverkaufs ist der gezählte Inhalt minus Wechselgeld.</p>
     <div class="grid">
-      <label>Gezählt in Kasse 1 (€) <input name="cash_1" data-price inputmode="decimal" value="{{ f.cash_1 }}"></label>
-      <label>Gezählt in Kasse 2 (€) <input name="cash_2" data-price inputmode="decimal" value="{{ f.cash_2 }}"></label>
+      <label>Wechselgeld (€) <input name="float_2" data-price inputmode="decimal" value="{{ f.float_2 }}"></label>
+      <label>Gezählt am Ende (€) <input name="cash_2" data-price inputmode="decimal" value="{{ f.cash_2 }}"></label>
     </div>
     <button type="submit">Speichern</button>
   </form>
@@ -36,7 +37,7 @@
         </select>
       </label>
     </div>
-    <label><input type="checkbox" name="paid_from_till" {% if e.paid_from_till %}checked{% endif %}> Bar aus einer Kasse bezahlt</label>
+    <label><input type="checkbox" name="paid_from_till" {% if e.paid_from_till %}checked{% endif %}> Bar aus der Kasse bezahlt (Basar-Ausgabe aus der Basar-Kasse, Kuchen-Ausgabe aus der Kuchen-Kasse)</label>
     <button type="submit">Ausgabe hinzufügen</button>
   </form>
 </div>
@@ -66,7 +67,7 @@
 <p class="warn" role="status">Achtung: {{ r.open_sellers }} Verkäufer {{ "ist" if r.open_sellers == 1 else "sind" }} noch nicht abgerechnet. Deren Provision fehlt im Ergebnis noch.</p>
 {% endif %}
 {% if not r.reconciles %}
-<p class="error" role="status">Achtung: Die Zahlen in der Gesamtabrechnung gehen nicht auf – bitte dort prüfen!</p>
+<p class="error" role="status">Achtung: Die Zahlen gehen nicht auf – bitte unten in der <a href="#gesamtabrechnung">Basar-Gesamtabrechnung</a> prüfen!</p>
 {% endif %}
 
 <h3>Basar</h3>
@@ -78,27 +79,39 @@
 
 <h3>Kuchenverkauf</h3>
 <table>
+  {% if r.cake_income_cents is none %}
+  <tr><td colspan="2" class="muted">Kuchen-Kasse noch nicht gezählt – oben den Inhalt eintragen.</td></tr>
+  {% else %}
+  <tr><td>Gezählt in der Kuchen-Kasse</td><td class="num">{{ r.closing.cash_2_cents|eur }}</td></tr>
+  <tr><td>Wechselgeld</td><td class="num">− {{ r.closing.float_2_cents|eur }}</td></tr>
+  {% if r.cake_till_expenses_cents %}<tr><td>Bar aus der Kuchen-Kasse bezahlte Ausgaben</td><td class="num">+ {{ r.cake_till_expenses_cents|eur }}</td></tr>{% endif %}
   <tr><td>Einnahmen</td><td class="num">{{ r.cake_income_cents|eur }}</td></tr>
   <tr><td>Ausgaben Kuchen</td><td class="num">− {{ r.cake_expenses_cents|eur }}</td></tr>
   <tr><th>Gewinn Kuchenverkauf</th><th class="num">{{ r.cake_profit_cents|eur }}</th></tr>
+  {% endif %}
 </table>
 
 <h3>Gesamt</h3>
 <table>
+  {% if r.total_profit_cents is none %}
+  <tr><td colspan="2" class="muted">Fehlt noch: Kuchen-Kasse zählen.</td></tr>
+  {% else %}
   <tr><th>Gewinn insgesamt (Basar + Kuchen)</th><th class="num">{{ r.total_profit_cents|eur }}</th></tr>
+  {% endif %}
 </table>
 
-<h3>Kassensturz</h3>
+<h3>Kassensturz Basar-Kasse</h3>
 <table>
-  <tr><td>Wechselgeld (Kasse 1 + Kasse 2)</td><td class="num">{{ r.float_cents|eur }}</td></tr>
-  <tr><td>Erwarteter Inhalt beider Kassen</td><td class="num">{{ r.expected_cash_cents|eur }}</td></tr>
+  <tr><td>Wechselgeld</td><td class="num">{{ r.float_cents|eur }}</td></tr>
+  <tr><td>Erwarteter Inhalt</td><td class="num">{{ r.expected_cash_cents|eur }}</td></tr>
   {% if r.counted_cash_cents is none %}
-  <tr><td colspan="2" class="muted">Noch nicht gezählt – oben den Inhalt beider Kassen eintragen.</td></tr>
+  <tr><td colspan="2" class="muted">Noch nicht gezählt – oben den Inhalt der Basar-Kasse eintragen.</td></tr>
   {% else %}
   <tr><td>Gezählt</td><td class="num">{{ r.counted_cash_cents|eur }}</td></tr>
   <tr><th>Differenz</th><th class="num {{ 'ok' if r.cash_difference_cents == 0 else 'error' }}">{{ r.cash_difference_cents|eur }}</th></tr>
   {% endif %}
 </table>
-<p class="hint">Erwartet = Wechselgeld + Verkäufe + bei der Annahme bezahlte Gebühren − bereits ausgezahlte Beträge − bar aus der Kasse bezahlte Ausgaben. Der Kuchenverkauf zählt hier nicht mit.</p>
+<p class="hint">Erwartet = Wechselgeld + Verkäufe + bei der Annahme bezahlte Gebühren − bereits ausgezahlte Beträge − bar aus der Basar-Kasse bezahlte Basar-Ausgaben.</p>
+{% with r = r.report %}{% include "_gesamtabrechnung.html" %}{% endwith %}
 <p class="no-print"><button type="button" onclick="window.print()">Drucken</button></p>
 {% endblock %}

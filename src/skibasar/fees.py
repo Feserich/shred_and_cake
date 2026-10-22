@@ -36,13 +36,14 @@ def paid_units_at_entry(
 ) -> int | None:
     """How many articles the fee paid at entry covers; None = all, also articles added later.
 
-    Newly marked as paid it covers the articles entered so far (all, if there are none yet).
+    Newly marked as paid it covers exactly the articles entered so far, so ticking "paid" before
+    any article exists does not make later articles free.
     """
     if not paid:
         return None
     if was_paid:
         return previous
-    return current_units or None
+    return current_units
 
 
 def settle(

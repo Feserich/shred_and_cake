@@ -1,4 +1,4 @@
-"""Abschluss (final settlement): cake income, change money, expenditures and the profit."""
+"""Abschluss (final settlement): change money, counted tills, expenditures and the profit."""
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -14,7 +14,6 @@ router = APIRouter(prefix="/abschluss")
 
 # Form field -> (Closing column, may be left empty)
 _CLOSING_FORM = {
-    "cake_income": ("cake_income_cents", False),
     "float_1": ("float_1_cents", False),
     "float_2": ("float_2_cents", False),
     "cash_1": ("cash_1_cents", True),

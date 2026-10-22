@@ -22,6 +22,10 @@ _SELLER_TEXT = ("name", "first_name", "phone", "email", "address", "notes")
 _ARTICLE_TEXT = ("description", "brand", "size", "color")
 # "sold" is only reachable through the checkout, never by hand
 _EDITABLE_STATUS = (ArticleStatus.available, ArticleStatus.returned, ArticleStatus.withdrawn)
+FEE_PAID_AND_EXEMPT_MESSAGE = (
+    "„Keine Angebotsgebühr“ und „Gebühr bezahlt“ schließen sich aus – wurde schon bezahlt, "
+    "bitte das Geld zurückgeben und „bezahlt“ entfernen"
+)
 
 
 class UebersichtError(ValueError):
@@ -103,6 +107,8 @@ def update_seller(
     if seller.settled_at is not None:
         _require_pin(s, admin_pin_given)
     else:
+        if fee_exempt and offer_fee_paid_at_entry:
+            raise UebersichtError(FEE_PAID_AND_EXEMPT_MESSAGE)
         new["fee_exempt"] = fee_exempt
         new["offer_fee_paid_at_entry"] = offer_fee_paid_at_entry and not fee_exempt
         new["offer_fee_paid_units"] = paid_units_at_entry(

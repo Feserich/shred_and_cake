@@ -1,4 +1,8 @@
-"""Abschluss: cake income, change money and expenditures -> final profit of the Basar."""
+"""Abschluss: change money, counted tills and expenditures -> final profit of the Basar.
+
+There are two tills: the Basar till (checkout, Annahme fees, Abholung payouts) and the cake till.
+The Basar till is checked against the sales figures; the cake income is what the cake till holds.
+"""
 
 from dataclasses import dataclass
 
@@ -9,7 +13,6 @@ from ..models import Closing, Expense, ExpenseCategory
 from . import audit, reports
 
 CLOSING_FIELDS = (
-    "cake_income_cents",
     "float_1_cents",
     "float_2_cents",
     "cash_1_cents",
@@ -28,33 +31,41 @@ class Result:
     open_sellers: int
     club_income_cents: int  # commission + fees of the Basar
     bazaar_expenses_cents: int
-    cake_income_cents: int
     cake_expenses_cents: int
-    expected_cash_cents: int  # what the checkouts should hold if all cash flows were booked
+    cake_till_expenses_cents: int  # cake expenses paid in cash out of the cake till
+    expected_cash_cents: int  # what the Basar till should hold if all cash flows were booked
     reconciles: bool  # the sales figures behind club_income_cents add up
+    report: reports.Report  # Basar-Gesamtabrechnung, shown below the result
 
     @property
     def bazaar_profit_cents(self) -> int:
         return self.club_income_cents - self.bazaar_expenses_cents
 
     @property
-    def cake_profit_cents(self) -> int:
-        return self.cake_income_cents - self.cake_expenses_cents
+    def cake_income_cents(self) -> int | None:
+        """Counted cake till minus change money plus what was paid out of it; None = not counted."""
+        c = self.closing
+        if c.cash_2_cents is None:
+            return None
+        return c.cash_2_cents - c.float_2_cents + self.cake_till_expenses_cents
 
     @property
-    def total_profit_cents(self) -> int:
-        return self.bazaar_profit_cents + self.cake_profit_cents
+    def cake_profit_cents(self) -> int | None:
+        income = self.cake_income_cents
+        return None if income is None else income - self.cake_expenses_cents
+
+    @property
+    def total_profit_cents(self) -> int | None:
+        cake = self.cake_profit_cents
+        return None if cake is None else self.bazaar_profit_cents + cake
 
     @property
     def float_cents(self) -> int:
-        return self.closing.float_1_cents + self.closing.float_2_cents
+        return self.closing.float_1_cents
 
     @property
     def counted_cash_cents(self) -> int | None:
-        c = self.closing
-        if c.cash_1_cents is None or c.cash_2_cents is None:
-            return None
-        return c.cash_1_cents + c.cash_2_cents
+        return self.closing.cash_1_cents
 
     @property
     def cash_difference_cents(self) -> int | None:
@@ -144,15 +155,16 @@ def build(s: Session) -> Result:
     def total(category: ExpenseCategory) -> int:
         return sum(e.amount_cents for e in expenses if e.category == category)
 
-    till_expenses = sum(e.amount_cents for e in expenses if e.paid_from_till)
+    def from_till(category: ExpenseCategory) -> int:
+        return sum(e.amount_cents for e in expenses if e.category == category and e.paid_from_till)
+
     # Cash taken at checkout and at entry, minus payouts already made (negative = seller paid in)
     expected = (
         closing.float_1_cents
-        + closing.float_2_cents
         + report.sales_total_cents
         + report.fee_at_entry_cents
         - report.payout_cents
-        - till_expenses
+        - from_till(ExpenseCategory.bazaar)
     )
     return Result(
         closing=closing,
@@ -160,8 +172,9 @@ def build(s: Session) -> Result:
         open_sellers=len(report.open_sellers),
         club_income_cents=report.club_income_cents,
         bazaar_expenses_cents=total(ExpenseCategory.bazaar),
-        cake_income_cents=closing.cake_income_cents,
         cake_expenses_cents=total(ExpenseCategory.cake),
+        cake_till_expenses_cents=from_till(ExpenseCategory.cake),
         expected_cash_cents=expected,
         reconciles=report.reconciles,
+        report=report,
     )

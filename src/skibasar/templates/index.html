@@ -2,6 +2,9 @@
 {% block content %}
 {% set on_laptop = request.client and request.client.host in ("127.0.0.1", "::1", "localhost") %}
 <h1>Skibasar</h1>
+{% if on_laptop and pin_missing %}
+<p class="warn" role="status">Es ist noch keine Admin-PIN eingerichtet. Ohne sie kann eine falsche Abrechnung nicht zurückgenommen werden – bitte unter <a href="/einstellungen">Einstellungen</a> festlegen.</p>
+{% endif %}
 <div class="grid">
   <a role="button" class="big-action" href="/annahme">Annahme</a>
   <a role="button" class="big-action" href="/kasse">Kasse</a>
@@ -15,6 +18,7 @@
 <h2>Erster Start</h2>
 <ol>
   <li><a href="/einstellungen">Einstellungen</a>: Name, Datum und Gebühren des Basars eintragen.</li>
+  <li><a href="/einstellungen">Einstellungen</a>: Admin-PIN festlegen{% if not pin_missing %} <span class="ok">(erledigt)</span>{% endif %}.</li>
   <li><a href="/haendler">Händler</a> anlegen und ihre Artikellisten importieren.</li>
   <li><a href="/annahme">Annahme</a>: Verkäufer und Artikel erfassen.</li>
 </ol>

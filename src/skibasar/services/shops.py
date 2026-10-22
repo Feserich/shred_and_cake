@@ -10,6 +10,7 @@ from ..fees import paid_at_entry_cents
 from ..models import Article, ArticleStatus, Event, Seller, SellerType
 from . import audit
 from .numbering import RangeError, validate_shop_range
+from .uebersicht import FEE_PAID_AND_EXEMPT_MESSAGE
 
 SETTLED_IMPORT_MESSAGE = (
     "Dieser Händler ist bereits abgerechnet – ein Import ist nicht mehr möglich."
@@ -52,7 +53,9 @@ def save_shop(
     if not name:
         raise RangeError("Name fehlt")
     validate_shop_range(s, range_start, range_end, exclude_seller_id=shop.id if shop else None)
-    paid = offer_fee_paid_at_entry and not fee_exempt
+    if fee_exempt and offer_fee_paid_at_entry:
+        raise RangeError(FEE_PAID_AND_EXEMPT_MESSAGE)
+    paid = offer_fee_paid_at_entry
     values = {
         "name": name,
         "number_range_start": range_start,
