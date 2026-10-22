@@ -5,7 +5,7 @@
   <label>Nummernbereich bis <input name="range_end" inputmode="numeric" value="{{ f.range_end }}" required></label>
   <label>Telefon <input name="phone" value="{{ f.phone }}"></label>
   <label>E-Mail <input name="email" value="{{ f.email }}"></label>
-  <label><input type="checkbox" name="fee_exempt" {{ "checked" if f.fee_exempt }}> Gebührenfrei</label>
+  <label><input type="checkbox" name="fee_exempt" {{ "checked" if f.fee_exempt }}> Keine Angebotsgebühr (Provision wird trotzdem berechnet)</label>
   <label><input type="checkbox" name="offer_fee_paid_at_entry" {{ "checked" if f.offer_fee_paid_at_entry }}> Gebühr bezahlt</label>
   <label>Notizen <textarea name="notes">{{ f.notes }}</textarea></label>
   <button type="submit">Speichern</button>

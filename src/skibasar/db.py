@@ -34,6 +34,9 @@ def _upgrade(engine: Engine) -> None:
                 text("ALTER TABLE event ADD COLUMN admin_pin_hash VARCHAR(200) DEFAULT ''")
             )
     columns = {c["name"] for c in inspect(engine).get_columns("seller")}
+    if "offer_fee_paid_units" not in columns:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE seller ADD COLUMN offer_fee_paid_units INTEGER"))
     if "offer_fee_paid_cents" not in columns:
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE seller ADD COLUMN offer_fee_paid_cents INTEGER"))

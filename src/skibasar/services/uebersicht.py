@@ -3,7 +3,7 @@
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from ..fees import paid_at_entry_cents
+from ..fees import paid_at_entry_cents, paid_units_at_entry
 from ..models import (
     Article,
     ArticleStatus,
@@ -105,6 +105,12 @@ def update_seller(
     else:
         new["fee_exempt"] = fee_exempt
         new["offer_fee_paid_at_entry"] = offer_fee_paid_at_entry and not fee_exempt
+        new["offer_fee_paid_units"] = paid_units_at_entry(
+            seller.offer_fee_paid_units,
+            was_paid=seller.offer_fee_paid_at_entry,
+            paid=new["offer_fee_paid_at_entry"],
+            current_units=seller.fee_units,
+        )
         new["offer_fee_paid_cents"] = paid_at_entry_cents(
             seller.offer_fee_paid_cents,
             paid=new["offer_fee_paid_at_entry"],

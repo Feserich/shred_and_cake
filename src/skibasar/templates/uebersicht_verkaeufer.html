@@ -24,7 +24,7 @@
     <td>{{ seller.display_name }}</td>
     <td>{{ "Händler" if seller.type.value == "shop" else "Privat" }}</td>
     <td class="num">{{ seller.articles|length }}</td>
-    <td>{% if seller.fee_exempt %}<span class="badge off">frei</span>{% elif seller.offer_fee_paid_at_entry or seller.settled_at %}<span class="badge ok">bezahlt</span>{% else %}<span class="badge warn">offen</span>{% endif %}</td>
+    <td>{% if seller.fee_exempt %}<span class="badge off">keine Gebühr</span>{% elif seller.offer_fee_paid_at_entry or seller.settled_at %}<span class="badge ok">bezahlt</span>{% else %}<span class="badge warn">offen</span>{% endif %}</td>
     <td>{% if seller.settled_at %}<span class="badge ok">abgerechnet</span>{% else %}<span class="badge warn">offen</span>{% endif %}</td>
     <td><a href="/uebersicht/verkaeufer/{{ seller.id }}">Bearbeiten</a></td>
   </tr>

@@ -40,10 +40,10 @@ class Event(Base):
     name: Mapped[str] = mapped_column(String(200), default="Skibasar")
     event_date: Mapped[date | None] = mapped_column(Date)
     private_number_start: Mapped[int] = mapped_column(Integer, default=0)
-    offer_fee_private_cents: Mapped[int] = mapped_column(Integer, default=0)
-    commission_private_bp: Mapped[int] = mapped_column(Integer, default=0)
+    offer_fee_private_cents: Mapped[int] = mapped_column(Integer, default=100)
+    commission_private_bp: Mapped[int] = mapped_column(Integer, default=1000)
     offer_fee_shop_cents: Mapped[int] = mapped_column(Integer, default=0)
-    commission_shop_bp: Mapped[int] = mapped_column(Integer, default=0)
+    commission_shop_bp: Mapped[int] = mapped_column(Integer, default=1000)
     # Salted hash of the admin PIN (see config.hash_pin); empty = none set in the app
     admin_pin_hash: Mapped[str] = mapped_column(String(200), default="")
 
@@ -69,6 +69,8 @@ class Seller(Base):
     offer_fee_paid_at_entry: Mapped[bool] = mapped_column(Boolean, default=False)
     # Cash actually taken at entry (per article for private sellers; see fee_units), so a later change of the fee setting never rewrites it
     offer_fee_paid_cents: Mapped[int | None] = mapped_column(Integer)
+    # Articles the entry fee was paid for; None = all of them (also articles added later)
+    offer_fee_paid_units: Mapped[int | None] = mapped_column(Integer)
     settled_at: Mapped[datetime | None] = mapped_column(DateTime)
     # Frozen at settlement so later fee changes never alter an issued invoice
     settled_sold_total_cents: Mapped[int | None] = mapped_column(Integer)
@@ -85,6 +87,19 @@ class Seller(Base):
     def fee_units(self) -> int:
         """How often the offer fee is charged: per article for private sellers, else once."""
         return len(self.articles) if self.type == SellerType.private else 1
+
+    @property
+    def fee_units_paid(self) -> int:
+        """Fee units already paid in cash at entry."""
+        if not self.offer_fee_paid_at_entry:
+            return 0
+        units = self.fee_units
+        return units if self.offer_fee_paid_units is None else min(self.offer_fee_paid_units, units)
+
+    @property
+    def fee_units_open(self) -> int:
+        """Fee units still to be paid (at entry or deducted at settlement)."""
+        return 0 if self.fee_exempt else self.fee_units - self.fee_units_paid
 
     @property
     def display_name(self) -> str:

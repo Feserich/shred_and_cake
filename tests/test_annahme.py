@@ -74,14 +74,15 @@ def test_numbers_are_shared_across_sellers_and_skip_shop_ranges(client):
 def test_fee_status_and_print_list(client):
     client.post("/einstellungen", data={"name": "B", "offer_fee_private": "2,50"})
     open_fee = _seller(client)
-    paid = _seller(client, offer_fee_paid_at_entry="on")
-    exempt = _seller(client, fee_exempt="on", offer_fee_paid_at_entry="on")
+    paid = _seller(client)
+    exempt = _seller(client, fee_exempt="on")
     _article(client, open_fee, 0)
     _article(client, paid, 1)
+    client.post(f"{paid}/gebuehr")
     assert "2,50 € offen" in client.get(f"{open_fee}/liste").text
     assert "2,50 € bezahlt" in client.get(f"{paid}/liste").text
     page = client.get(f"{exempt}/liste").text
-    assert "Gebührenfrei" in page and "Unterschrift" in page
+    assert "Keine Angebotsgebühr" in page and "Unterschrift" in page
     assert "Skijacke" in client.get(f"{open_fee}/liste").text
 
 
@@ -95,10 +96,10 @@ def test_search_by_name_and_article_number(client):
 
 def test_update_seller_and_unknown_seller(client):
     url = _seller(client)
-    r = client.post(
-        url, data={"name": "Maier", "offer_fee_paid_at_entry": "on"}, follow_redirects=True
-    )
-    assert "Maier" in r.text and "bezahlt" in r.text
+    _article(client, url, 0)
+    client.post(f"{url}/gebuehr")
+    r = client.post(url, data={"name": "Maier"}, follow_redirects=True)
+    assert "Maier" in r.text and "bezahlt" in r.text  # editing the data keeps the payment
     assert client.get("/annahme/999").status_code == 404
 
 
@@ -160,19 +161,20 @@ def test_price_at_limit_saves_directly(client):
     assert _article(client, _seller(client), 0, price="500,00").status_code == 303
 
 
-def test_fee_checkbox_shows_amount(client):
-    client.post(
-        "/einstellungen",
-        data={
-            "name": "x",
-            "event_date": "2026-11-07",
-            "private_number_start": "0",
-            "offer_fee_private": "2,00",
-            "commission_private": "10",
-            "offer_fee_shop": "0",
-            "commission_shop": "7,5",
-        },
-    )
-    assert "Gebühr bezahlt (2,00 € pro Artikel)" in client.get("/annahme").text
+def test_collect_fee_in_annahme(client):
+    client.post("/einstellungen", data={"name": "B", "offer_fee_private": "2,50"})
     url = _seller(client)
-    assert "Gebühr bezahlt (2,00 € pro Artikel)" in client.get(url).text
+    _article(client, url, 0)
+    _article(client, url, 1)
+    page = client.get(url).text
+    assert "5,00 €" in page and "Gebühr 5,00 € kassiert" in page
+    assert page.index("Summe") < page.index("fee-box") < page.index("Stammdaten")
+    assert "offer_fee_paid_at_entry" not in page
+    assert client.post(f"{url}/gebuehr", follow_redirects=False).status_code == 303
+    page = client.get(url).text
+    assert "für alle 2 Artikel bezahlt" in page
+    assert client.post(f"{url}/gebuehr").status_code == 422
+    _article(client, url, 2)  # a later article is not covered by the earlier payment
+    page = client.get(url).text
+    assert "Gebühr 2,50 € kassiert" in page
+    assert "5,00 € bezahlt, weitere 2,50 € offen" in page

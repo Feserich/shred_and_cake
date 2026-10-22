@@ -4,6 +4,7 @@
 <p><a href="/annahme">← Annahme</a></p>
 <h1>{{ seller.display_name }}</h1>
 <p class="muted">{{ fee_status }}</p>
+{% if fee_saved %}<div data-toast="ok">Gebühr als bezahlt vermerkt.</div>{% endif %}
 {% if seller.settled_at %}
 <p class="error">Dieser Verkäufer ist bereits abgerechnet.</p>
 {% else %}
@@ -42,6 +43,20 @@
       <td>{{ art.size }}</td><td>{{ art.color }}</td><td class="num">{{ art.price_cents|eur }}</td></tr>
   {% endfor %}
 </table></div>
+{% endif %}
+{% if not seller.settled_at and not seller.fee_exempt and seller.articles %}
+<section class="fee-box">
+  {% if seller.fee_units_open %}
+  <p>Angebotsgebühr zu bezahlen:<strong class="fee-amount">{{ fee_due_cents|eur }}</strong>
+    <span class="muted">({{ seller.fee_units_open }} Artikel × {{ offer_fee }})</span></p>
+  <form method="post" action="/annahme/{{ seller.id }}/gebuehr" data-confirm="{{ fee_due_cents|eur }} Angebotsgebühr bar kassiert? Danach wird sie bei der Abrechnung nicht mehr abgezogen.">
+    <button type="submit">Gebühr {{ fee_due_cents|eur }} kassiert</button>
+  </form>
+  <p class="hint">Oder die Gebühr bleibt offen und wird bei der Abholung vom Erlös abgezogen. Nach weiteren Artikeln erscheint hier der Restbetrag.</p>
+  {% else %}
+  <p class="ok">Angebotsgebühr für alle {{ seller.fee_units }} Artikel bezahlt.</p>
+  {% endif %}
+</section>
 {% endif %}
 <h2>Stammdaten</h2>
 {% if seller_error %}<p class="error">{{ seller_error }}</p>{% endif %}

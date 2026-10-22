@@ -15,9 +15,9 @@ def test_fee_paid_at_entry_not_deducted():
     assert s.payout_cents == 9000
 
 
-def test_exempt_pays_nothing():
+def test_exempt_pays_commission_but_no_offer_fee():
     s = settle([6000], RULES, fee_exempt=True, offer_fee_paid_at_entry=False)
-    assert (s.commission_cents, s.open_offer_fee_cents, s.payout_cents) == (0, 0, 6000)
+    assert (s.commission_cents, s.open_offer_fee_cents, s.payout_cents) == (600, 0, 5400)
 
 
 def test_nothing_sold_with_open_fee_seller_pays():
@@ -52,3 +52,11 @@ def test_per_article_fee_paid_at_entry_and_exempt():
     assert paid.open_offer_fee_cents == 0
     free = settle([], rules, fee_exempt=True, offer_fee_paid_at_entry=False, article_count=5)
     assert free.open_offer_fee_cents == 0
+
+
+def test_fee_paid_for_part_of_the_articles():
+    rules = FeeRules(200, 1000, per_article=True)
+    s = settle(
+        [], rules, fee_exempt=False, offer_fee_paid_at_entry=True, article_count=5, fee_units_paid=3
+    )
+    assert s.open_offer_fee_cents == 400

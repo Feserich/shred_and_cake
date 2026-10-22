@@ -124,3 +124,6 @@ td code { white-space: normal; word-break: break-all; font-size: .8rem; }
   .entry-form, .scan-row { grid-template-columns: 1fr; }
   main.container { padding-inline: .75rem; }
 }
+
+.fee-box { border: 2px solid var(--pico-primary-background); border-radius: var(--pico-border-radius); padding: .8rem 1rem; margin-bottom: 1rem; }
+.fee-box .fee-amount { font-size: 2.6rem; line-height: 1.2; display: block; }

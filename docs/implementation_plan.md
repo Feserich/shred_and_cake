@@ -68,7 +68,7 @@ The users are club volunteers with no technical background, often working fast a
   - `format_eur(254500) -> "2.545,00 €"`.
   - `commission(total_cents, bp)`: integer arithmetic with **round half up** to a whole cent, applied **once per seller on their sold total** (never per article).
 - Settlement per seller:
-  `payout = sold_total − commission − (offer_fee if open and not exempt)`; for private sellers the offer fee is charged per article (every article entered), for shops once.
+  `payout = sold_total − commission − (offer_fee if open and not exempt)`. Exempt sellers (teaching team, helpers) pay no offer fee but still the commission. For private sellers the offer fee is charged per article (every article entered), for shops once.
   The payout can be negative, for example when nothing sold and the fee is still open. The invoice then shows "Seller pays X".
 
 ## Data model (`models.py`)

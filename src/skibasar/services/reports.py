@@ -99,7 +99,7 @@ def build(s: Session) -> Report:
         g = groups[seller.type]
         g.sellers += 1
         if seller.offer_fee_paid_at_entry and not seller.fee_exempt:
-            g.fee_at_entry_cents += (seller.offer_fee_paid_cents or 0) * seller.fee_units
+            g.fee_at_entry_cents += (seller.offer_fee_paid_cents or 0) * seller.fee_units_paid
         p = abholung.preview(s, seller)
         r = p.settlement
         if seller.settled_at is not None:

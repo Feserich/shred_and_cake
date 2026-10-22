@@ -67,6 +67,7 @@ def preview(s: Session, seller: Seller) -> Preview:
             fee_exempt=seller.fee_exempt,
             offer_fee_paid_at_entry=seller.offer_fee_paid_at_entry,
             article_count=len(seller.articles),
+            fee_units_paid=seller.offer_fee_paid_units,
         )
     return Preview(
         seller,
@@ -211,9 +212,13 @@ def undo_settlement(s: Session, seller: Seller, *, admin_pin_given: str, client:
 def settled_fee_status(seller: Seller, settlement: Settlement) -> str:
     """Fee line for the invoice, built from the frozen settlement, not from current settings."""
     if seller.fee_exempt:
-        return "Gebührenfrei"
+        return "Keine Angebotsgebühr (Provision wird berechnet)"
     if seller.offer_fee_paid_at_entry:
-        paid = format_eur((seller.offer_fee_paid_cents or 0) * seller.fee_units)
-        return f"Angebotsgebühr {paid} bei der Annahme bezahlt"
+        paid = format_eur((seller.offer_fee_paid_cents or 0) * seller.fee_units_paid)
+        text = f"Angebotsgebühr {paid} bei der Annahme bezahlt"
+        if settlement.open_offer_fee_cents:
+            rest = format_eur(settlement.open_offer_fee_cents)
+            text += f", weitere {rest} wurden bei der Abrechnung abgezogen"
+        return text
     amount = format_eur(settlement.open_offer_fee_cents)
     return f"Angebotsgebühr {amount} wurde bei der Abrechnung abgezogen"

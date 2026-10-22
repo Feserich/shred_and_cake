@@ -4,7 +4,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from ..fees import paid_at_entry_cents
+from ..fees import paid_at_entry_cents, paid_units_at_entry
 from ..models import Article, ArticleStatus, Event, Seller, SellerType
 from ..money import format_eur
 from . import audit
@@ -43,9 +43,9 @@ def save_private_seller(
     address: str = "",
     notes: str = "",
     fee_exempt: bool = False,
-    offer_fee_paid_at_entry: bool = False,
     client: str = "",
 ) -> Seller:
+    """Create or edit a private seller. The fee payment is recorded by ``collect_fee`` only."""
     if not name.strip():
         raise AnnahmeError("Name fehlt")
     if seller is not None and seller.settled_at is not None:
@@ -54,7 +54,15 @@ def save_private_seller(
     texts |= {"address": address, "notes": notes}
     values = {k: texts[k].strip() for k in _SELLER_FIELDS}
     values["fee_exempt"] = fee_exempt
-    values["offer_fee_paid_at_entry"] = offer_fee_paid_at_entry and not fee_exempt
+    values["offer_fee_paid_at_entry"] = bool(seller and seller.offer_fee_paid_at_entry) and (
+        not fee_exempt
+    )
+    values["offer_fee_paid_units"] = paid_units_at_entry(
+        seller.offer_fee_paid_units if seller else None,
+        was_paid=bool(seller and seller.offer_fee_paid_at_entry),
+        paid=values["offer_fee_paid_at_entry"],
+        current_units=len(seller.articles) if seller else 0,
+    )
     values["offer_fee_paid_cents"] = paid_at_entry_cents(
         seller.offer_fee_paid_cents if seller else None,
         paid=values["offer_fee_paid_at_entry"],
@@ -72,6 +80,38 @@ def save_private_seller(
         audit.log(s, "seller", seller.id, "update", before, values, client)
     s.commit()
     return seller
+
+
+def collect_fee(s: Session, seller: Seller, client: str = "") -> int:
+    """The seller pays the offer fee for all articles entered so far; returns the cash amount."""
+    if seller.type != SellerType.private:
+        raise AnnahmeError("Die Gebühr der Händler wird in den Händlerdaten verwaltet")
+    if seller.settled_at is not None:
+        raise AnnahmeError("Der Verkäufer ist bereits abgerechnet")
+    if seller.fee_exempt:
+        raise AnnahmeError("Dieser Verkäufer zahlt keine Angebotsgebühr")
+    units = seller.fee_units_open
+    if units == 0:
+        raise AnnahmeError("Es ist nichts zu bezahlen")
+    fee = s.get(Event, 1).offer_fee_private_cents
+    before = {
+        "paid": seller.offer_fee_paid_at_entry,
+        "paid_cents": seller.offer_fee_paid_cents,
+        "paid_units": seller.offer_fee_paid_units,
+    }
+    seller.offer_fee_paid_at_entry = True
+    seller.offer_fee_paid_cents = (
+        fee if seller.offer_fee_paid_cents is None else (seller.offer_fee_paid_cents)
+    )
+    seller.offer_fee_paid_units = seller.fee_units
+    after = {
+        "paid": True,
+        "paid_cents": seller.offer_fee_paid_cents,
+        "paid_units": seller.offer_fee_paid_units,
+    }
+    audit.log(s, "seller", seller.id, "collect_fee", before, after, client)
+    s.commit()
+    return fee * units
 
 
 def add_article(
@@ -168,8 +208,14 @@ def suggestions(s: Session, column: str) -> list[str]:
 def fee_status(event: Event, seller: Seller) -> str:
     """Human readable (German) offer fee status for screens and the printed list."""
     if seller.fee_exempt:
-        return "Gebührenfrei"
+        return "Keine Angebotsgebühr (Provision wird berechnet)"
+    fee = event.offer_fee_cents(seller.type)
+    open_text = (
+        f"{format_eur(fee * seller.fee_units_open)} offen (wird bei der Abrechnung abgezogen)"
+    )
     if seller.offer_fee_paid_at_entry:
-        return f"Angebotsgebühr {format_eur((seller.offer_fee_paid_cents or 0) * seller.fee_units)} bezahlt"
-    amount = format_eur(event.offer_fee_cents(seller.type) * seller.fee_units)
-    return f"Angebotsgebühr {amount} offen (wird bei der Abrechnung abgezogen)"
+        paid = format_eur((seller.offer_fee_paid_cents or 0) * seller.fee_units_paid)
+        if seller.fee_units_open:
+            return f"Angebotsgebühr {paid} bezahlt, weitere {open_text}"
+        return f"Angebotsgebühr {paid} bezahlt"
+    return f"Angebotsgebühr {open_text}"

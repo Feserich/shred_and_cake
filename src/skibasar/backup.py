@@ -171,7 +171,7 @@ class Backup:
                 "Adresse",
                 "Nr von",
                 "Nr bis",
-                "Gebührenfrei",
+                "Ohne Angebotsgebühr",
                 "Gebühr bei Annahme bezahlt",
                 "Bezahlte Gebühr Cent",
                 "Bezahlte Gebühr",
