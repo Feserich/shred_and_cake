@@ -170,6 +170,6 @@ def fee_status(event: Event, seller: Seller) -> str:
     if seller.fee_exempt:
         return "Gebührenfrei"
     if seller.offer_fee_paid_at_entry:
-        return f"Angebotsgebühr {format_eur(seller.offer_fee_paid_cents or 0)} bezahlt"
-    amount = format_eur(event.offer_fee_cents(seller.type))
+        return f"Angebotsgebühr {format_eur((seller.offer_fee_paid_cents or 0) * seller.fee_units)} bezahlt"
+    amount = format_eur(event.offer_fee_cents(seller.type) * seller.fee_units)
     return f"Angebotsgebühr {amount} offen (wird bei der Abrechnung abgezogen)"

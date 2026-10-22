@@ -48,8 +48,8 @@ def test_preview_is_read_only_and_calculates(client):
     _sell(client, 0, 1)
     page = client.get("/abholung/1").text
     assert "noch nichts gespeichert" in page
-    # 15,55 sold; commission 1,555 -> 1,56 (half up); open fee 2,00; payout 12,00 - 0,01
-    assert "15,55 €" in page and "1,56 €" in page and "2,00 €" in page and "11,99 €" in page
+    # 15,55 sold; commission 1,555 -> 1,56 (half up); fee 3 x 2,00 = 6,00; payout 7,99
+    assert "15,55 €" in page and "1,56 €" in page and "6,00 €" in page and "7,99 €" in page
     with client.app.state.session_factory() as s:
         assert s.get(Seller, 1).settled_at is None
     assert client.get("/abholung/1/rechnung", follow_redirects=False).status_code == 303
@@ -59,12 +59,12 @@ def test_finish_marks_returned_and_blocks_sales(client):
     _sell(client, 0)
     r = client.post(
         "/abholung/1/abschluss",
-        data={"returned": ["1", "2"], "expected_payout": "700"},
+        data={"returned": ["1", "2"], "expected_payout": "300"},
         follow_redirects=False,
     )
     assert r.status_code == 303 and r.headers["location"].startswith("/abholung/1/rechnung")
     invoice = client.get("/abholung/1/rechnung").text
-    assert "Unterschrift" in invoice and "zurückgegeben" in invoice and "7,00 €" in invoice
+    assert "Unterschrift" in invoice and "zurückgegeben" in invoice and "3,00 €" in invoice
     kasse = client.post("/kasse/artikel", data={"number": "1"})
     assert kasse.status_code == 422 and "zurückgegeben" in kasse.text
     again = client.post("/abholung/1/abschluss", data={})
@@ -79,7 +79,7 @@ def test_unticked_articles_stay_available(client):
 
 def test_negative_payout_shows_seller_pays(client):
     page = client.get("/abholung/1").text
-    assert "Verkäufer zahlt" in page and "2,00 €" in page
+    assert "Verkäufer zahlt" in page and "6,00 €" in page
 
 
 def test_exempt_seller_pays_nothing(client):
@@ -113,7 +113,7 @@ def test_invoice_is_frozen_after_settlement(client):
         event.offer_fee_private_cents = 900
         s.commit()
     assert client.get("/abholung/1/rechnung").text == before
-    assert "7,00 €" in before
+    assert "3,00 €" in before
 
 
 def test_unsold_articles_are_ticked_as_returned_by_default(client):
@@ -159,7 +159,7 @@ def test_finish_after_sale_in_other_session_refuses_stale_payout(client):
 def test_undo_settlement(client, monkeypatch):
     monkeypatch.delenv("SKIBASAR_ADMIN_PIN", raising=False)
     _sell(client, 0)
-    client.post("/abholung/1/abschluss", data={"returned": ["1", "2"], "expected_payout": "700"})
+    client.post("/abholung/1/abschluss", data={"returned": ["1", "2"], "expected_payout": "300"})
     page = client.get("/abholung/1").text
     assert "Abrechnung zurücknehmen" in page and "data-confirm" in page
     r = client.post("/abholung/1/zuruecknehmen", data={"admin_pin": "4711"})
@@ -184,5 +184,5 @@ def test_undo_settlement(client, monkeypatch):
     # not settled any more: a second undo is refused, and the seller can be settled again
     r = client.post("/abholung/1/zuruecknehmen", data={"admin_pin": "4711"})
     assert r.status_code == 422 and "nicht abgerechnet" in r.text
-    client.post("/abholung/1/abschluss", data={"returned": ["1", "2"], "expected_payout": "700"})
+    client.post("/abholung/1/abschluss", data={"returned": ["1", "2"], "expected_payout": "300"})
     assert client.get("/abholung/1/rechnung").status_code == 200

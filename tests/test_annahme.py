@@ -77,6 +77,7 @@ def test_fee_status_and_print_list(client):
     paid = _seller(client, offer_fee_paid_at_entry="on")
     exempt = _seller(client, fee_exempt="on", offer_fee_paid_at_entry="on")
     _article(client, open_fee, 0)
+    _article(client, paid, 1)
     assert "2,50 € offen" in client.get(f"{open_fee}/liste").text
     assert "2,50 € bezahlt" in client.get(f"{paid}/liste").text
     page = client.get(f"{exempt}/liste").text
@@ -172,6 +173,6 @@ def test_fee_checkbox_shows_amount(client):
             "commission_shop": "7,5",
         },
     )
-    assert "Gebühr bezahlt (2,00 €)" in client.get("/annahme").text
+    assert "Gebühr bezahlt (2,00 € pro Artikel)" in client.get("/annahme").text
     url = _seller(client)
-    assert "Gebühr bezahlt (2,00 €)" in client.get(url).text
+    assert "Gebühr bezahlt (2,00 € pro Artikel)" in client.get(url).text

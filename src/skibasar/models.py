@@ -67,7 +67,7 @@ class Seller(Base):
     number_range_end: Mapped[int | None] = mapped_column(Integer)
     fee_exempt: Mapped[bool] = mapped_column(Boolean, default=False)
     offer_fee_paid_at_entry: Mapped[bool] = mapped_column(Boolean, default=False)
-    # Cash actually taken at entry, so a later change of the fee setting never rewrites it
+    # Cash actually taken at entry (per article for private sellers; see fee_units), so a later change of the fee setting never rewrites it
     offer_fee_paid_cents: Mapped[int | None] = mapped_column(Integer)
     settled_at: Mapped[datetime | None] = mapped_column(DateTime)
     # Frozen at settlement so later fee changes never alter an issued invoice
@@ -80,6 +80,11 @@ class Seller(Base):
     articles: Mapped[list["Article"]] = relationship(
         back_populates="seller", order_by="Article.number"
     )
+
+    @property
+    def fee_units(self) -> int:
+        """How often the offer fee is charged: per article for private sellers, else once."""
+        return len(self.articles) if self.type == SellerType.private else 1
 
     @property
     def display_name(self) -> str:

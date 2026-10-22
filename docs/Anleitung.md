@@ -18,7 +18,7 @@ Im Ordner `data` **neben** dem Programm: Datenbank, `journal.csv`, `snapshots/` 
 
 ## 2. Ablauf
 
-1. **Einstellungen** – Name und Datum des Basars, Gebühren (Angebotsgebühr und Provision, getrennt für Händler und Privatverkäufer). Dort auch die **Admin-PIN** festlegen (mindestens 4 Ziffern); ohne sie sind Änderungen an abgerechneten Verkäufern und das Zurücknehmen einer Abrechnung gesperrt. Zum Ändern wird die bisherige PIN verlangt – die PIN gut aufbewahren.
+1. **Einstellungen** – Name und Datum des Basars, Gebühren (Angebotsgebühr und Provision, getrennt für Händler und Privatverkäufer; bei Privatverkäufern wird die Angebotsgebühr für jeden Artikel berechnet). Dort auch die **Admin-PIN** festlegen (mindestens 4 Ziffern); ohne sie sind Änderungen an abgerechneten Verkäufern und das Zurücknehmen einer Abrechnung gesperrt. Zum Ändern wird die bisherige PIN verlangt – die PIN gut aufbewahren.
 2. **Händler** – Händler anlegen mit Nummernbereich (z. B. 1000–1999), CSV-Liste hochladen. Die Vorschau zeigt Fehler und die Summe; erst „Importieren“ speichert. Ein erneuter Import zeigt vorher die Unterschiede.
 3. **Annahme** – Verkäufer anlegen, dann Artikel erfassen: Beschreibung, Marke, Größe, Preis, Enter. Die nächste Nummer wird groß angezeigt – den passenden Aufkleber aufkleben. „Gebühr bezahlt“ ankreuzen, wenn die Gebühr gleich bar bezahlt wird; sonst wird sie später abgezogen. Am Ende die **Verkäuferliste** drucken.
 4. **Kasse** – Nummer tippen, Enter. Rote Meldung bei unbekannten, bereits verkauften oder zurückgenommenen Nummern. „Verkauf abschließen“ speichert; Beleg optional drucken. Falsche Verkäufe: unter „Verkäufe“ **stornieren** – die Artikel sind danach wieder frei.

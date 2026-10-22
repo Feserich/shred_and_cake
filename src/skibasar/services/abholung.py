@@ -43,7 +43,7 @@ def search_sellers(s: Session, query: str = "") -> list[Seller]:
 def rules_for(event: Event, seller: Seller) -> FeeRules:
     if seller.type == SellerType.shop:
         return FeeRules(event.offer_fee_shop_cents, event.commission_shop_bp)
-    return FeeRules(event.offer_fee_private_cents, event.commission_private_bp)
+    return FeeRules(event.offer_fee_private_cents, event.commission_private_bp, per_article=True)
 
 
 def preview(s: Session, seller: Seller) -> Preview:
@@ -66,6 +66,7 @@ def preview(s: Session, seller: Seller) -> Preview:
             rules_for(event, seller),
             fee_exempt=seller.fee_exempt,
             offer_fee_paid_at_entry=seller.offer_fee_paid_at_entry,
+            article_count=len(seller.articles),
         )
     return Preview(
         seller,
@@ -212,7 +213,7 @@ def settled_fee_status(seller: Seller, settlement: Settlement) -> str:
     if seller.fee_exempt:
         return "Gebührenfrei"
     if seller.offer_fee_paid_at_entry:
-        paid = format_eur(seller.offer_fee_paid_cents or 0)
+        paid = format_eur((seller.offer_fee_paid_cents or 0) * seller.fee_units)
         return f"Angebotsgebühr {paid} bei der Annahme bezahlt"
     amount = format_eur(settlement.open_offer_fee_cents)
     return f"Angebotsgebühr {amount} wurde bei der Abrechnung abgezogen"

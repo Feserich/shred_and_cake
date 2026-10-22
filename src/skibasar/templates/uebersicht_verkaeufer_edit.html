@@ -17,7 +17,7 @@
   </div>
   {% if not seller.settled_at %}
   <label><input type="checkbox" name="fee_exempt" {{ "checked" if seller.fee_exempt }}> Gebührenfrei (Lehrteam)</label>
-  <label><input type="checkbox" name="offer_fee_paid_at_entry" {{ "checked" if seller.offer_fee_paid_at_entry }}> Angebotsgebühr bei der Annahme bezahlt</label>
+  <label><input type="checkbox" name="offer_fee_paid_at_entry" {{ "checked" if seller.offer_fee_paid_at_entry }}> Angebotsgebühr bei der Annahme bezahlt (Privat: pro Artikel)</label>
   {% else %}
   <label>Admin-PIN <input type="password" name="admin_pin" inputmode="numeric" autocomplete="off"></label>
   {% endif %}

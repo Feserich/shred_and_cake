@@ -97,7 +97,7 @@ def test_edit_validation_messages_are_german(client):
 
 def test_settled_seller_needs_admin_pin(client, monkeypatch):
     _sell(client, 0)
-    client.post("/abholung/1/abschluss", data={"returned": ["1", "2"], "expected_payout": "700"})
+    client.post("/abholung/1/abschluss", data={"returned": ["1", "2"], "expected_payout": "300"})
     form = {"name": "Huber-Neu", "phone": "123"}
     monkeypatch.delenv("SKIBASAR_ADMIN_PIN", raising=False)
     r = client.post("/uebersicht/verkaeufer/1", data=form)
@@ -111,7 +111,7 @@ def test_settled_seller_needs_admin_pin(client, monkeypatch):
     assert r.status_code == 303
     with client.app.state.session_factory() as s:
         seller = s.get(Seller, 1)
-        assert seller.name == "Huber-Neu" and seller.settled_payout_cents == 700
+        assert seller.name == "Huber-Neu" and seller.settled_payout_cents == 300
     # price/status of an article of a settled seller stay locked even with the PIN
     r = client.post(
         "/uebersicht/artikel/1",
@@ -121,22 +121,22 @@ def test_settled_seller_needs_admin_pin(client, monkeypatch):
 
 
 def test_fee_paid_at_entry_survives_fee_change(client):
-    # Huber pays 2,00 € in cash; then the fee setting is raised to 5,00 €
+    # Huber (3 articles) pays 3 x 2,00 € in cash; then the fee setting is raised to 5,00 €
     client.post("/uebersicht/verkaeufer/1", data={"name": "Huber", "offer_fee_paid_at_entry": "on"})
     settings = {"name": "B", "offer_fee_private": "5,00", "commission_private": "10"}
     client.post("/einstellungen", data=settings)
     with client.app.state.session_factory() as s:
-        assert reports.build(s).fee_at_entry_cents == 200
-    assert "2,00 € bezahlt" in client.get("/annahme/1/liste").text
+        assert reports.build(s).fee_at_entry_cents == 600
+    assert "6,00 € bezahlt" in client.get("/annahme/1/liste").text
     # Saving the seller again keeps the recorded amount; a newly paying seller pays the new fee
     client.post("/uebersicht/verkaeufer/1", data={"name": "Huber", "offer_fee_paid_at_entry": "on"})
     client.post("/uebersicht/verkaeufer/2", data={"name": "Maier", "offer_fee_paid_at_entry": "on"})
     with client.app.state.session_factory() as s:
-        assert reports.build(s).fee_at_entry_cents == 200 + 500
+        assert reports.build(s).fee_at_entry_cents == 600 + 2 * 500
     _sell(client, 0)
     client.post("/abholung/1/abschluss", data={"expected_payout": "900"})
     invoice = client.get("/abholung/1/rechnung").text
-    assert "Angebotsgebühr 2,00 € bei der Annahme bezahlt" in invoice
+    assert "Angebotsgebühr 6,00 € bei der Annahme bezahlt" in invoice
     # Unticking "paid" forgets the amount: the fee is open again
     client.post("/uebersicht/verkaeufer/2", data={"name": "Maier"})
     with client.app.state.session_factory() as s:
@@ -156,10 +156,10 @@ def test_gesamtabrechnung_reconciles_to_the_cent(client):
     assert "Die Zahlen stimmen" in page
     assert "Stornierte Verkäufe" in page and "Alle Verkäufer sind abgerechnet" not in page
 
-    client.post("/abholung/1/abschluss", data={"returned": [], "expected_payout": "1402"})
+    client.post("/abholung/1/abschluss", data={"returned": [], "expected_payout": "1002"})
     page = client.get("/gesamtabrechnung").text
-    # Huber sold 10,00 + 5,55 + 2,25 = 17,80; commission 1,78; fee 2,00 -> 14,02
-    assert "17,80 €" in page and "1,78 €" in page and "14,02 €" in page
+    # Huber sold 10,00 + 5,55 + 2,25 = 17,80; commission 1,78; fee 3 x 2,00 -> 10,02
+    assert "17,80 €" in page and "1,78 €" in page and "10,02 €" in page
     assert "Die Zahlen stimmen" in page
 
     client.post("/abholung/2/abschluss", data={"returned": ["4"]})

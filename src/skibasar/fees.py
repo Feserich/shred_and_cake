@@ -9,6 +9,7 @@ from .money import commission
 class FeeRules:
     offer_fee_cents: int
     commission_bp: int
+    per_article: bool = False  # private sellers pay the offer fee for every article
 
 
 @dataclass(frozen=True)
@@ -36,10 +37,12 @@ def settle(
     *,
     fee_exempt: bool,
     offer_fee_paid_at_entry: bool,
+    article_count: int = 0,
 ) -> Settlement:
     """Compute what a seller receives: sold total minus commission minus open offer fee.
 
     Commission is computed once on the seller's sold total, never per article.
+    The offer fee is charged once, or per offered article (``article_count``) if the rules say so.
     Fee-exempt sellers pay neither offer fee nor commission.
     """
     sold_total = sum(sold_prices_cents)
@@ -47,7 +50,8 @@ def settle(
         comm, open_fee = 0, 0
     else:
         comm = commission(sold_total, rules.commission_bp)
-        open_fee = 0 if offer_fee_paid_at_entry else rules.offer_fee_cents
+        units = article_count if rules.per_article else 1
+        open_fee = 0 if offer_fee_paid_at_entry else rules.offer_fee_cents * units
     return Settlement(
         sold_total_cents=sold_total,
         commission_cents=comm,

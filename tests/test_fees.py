@@ -37,3 +37,18 @@ def test_identity_holds():
         [1999, 2999, 49], FeeRules(250, 1250), fee_exempt=False, offer_fee_paid_at_entry=False
     )
     assert s.payout_cents + s.commission_cents + s.open_offer_fee_cents == s.sold_total_cents
+
+
+def test_per_article_fee_charged_for_every_article():
+    rules = FeeRules(200, 1000, per_article=True)
+    s = settle([6000], rules, fee_exempt=False, offer_fee_paid_at_entry=False, article_count=5)
+    assert s.open_offer_fee_cents == 1000
+    assert s.payout_cents == 6000 - 600 - 1000
+
+
+def test_per_article_fee_paid_at_entry_and_exempt():
+    rules = FeeRules(200, 1000, per_article=True)
+    paid = settle([], rules, fee_exempt=False, offer_fee_paid_at_entry=True, article_count=5)
+    assert paid.open_offer_fee_cents == 0
+    free = settle([], rules, fee_exempt=True, offer_fee_paid_at_entry=False, article_count=5)
+    assert free.open_offer_fee_cents == 0
