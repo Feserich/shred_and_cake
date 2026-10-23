@@ -67,7 +67,8 @@ class Seller(Base):
     number_range_end: Mapped[int | None] = mapped_column(Integer)
     fee_exempt: Mapped[bool] = mapped_column(Boolean, default=False)
     offer_fee_paid_at_entry: Mapped[bool] = mapped_column(Boolean, default=False)
-    # Cash actually taken at entry (per article for private sellers; see fee_units), so a later change of the fee setting never rewrites it
+    # Cash actually taken at entry (per article for private sellers; see fee_units), 
+    # so a later change of the fee setting never rewrites it
     offer_fee_paid_cents: Mapped[int | None] = mapped_column(Integer)
     # Articles the entry fee was paid for; None = all of them (also articles added later)
     offer_fee_paid_units: Mapped[int | None] = mapped_column(Integer)
