@@ -25,10 +25,10 @@ jobs:
         include:
           - os: ubuntu-latest
             artifact: skibasar-linux.tar.gz
-            archive: tar -czf skibasar-linux.tar.gz -C dist skibasar -C "$PWD/docs" Anleitung.md
+            archive: tar -czf skibasar-linux.tar.gz -C dist skibasar Anleitung.html
           - os: windows-latest
             artifact: skibasar-windows.zip
-            archive: Compress-Archive -Path dist/skibasar.exe, dist/Skibasar-starten.bat, dist/Skibasar-mit-Telefonen.bat, docs/Anleitung.md -DestinationPath skibasar-windows.zip
+            archive: Compress-Archive -Path dist/skibasar.exe, dist/Skibasar-starten.bat, dist/Skibasar-mit-Telefonen.bat, dist/Anleitung.html -DestinationPath skibasar-windows.zip
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4

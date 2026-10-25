@@ -19,7 +19,7 @@ dependencies = [
 
 [dependency-groups]
 dev = ["pytest>=8", "httpx2>=2.16", "ruff>=0.5"]
-build = ["pyinstaller>=6"]
+build = ["pyinstaller>=6", "markdown>=3.5"]
 
 [project.scripts]
 skibasar = "skibasar.main:run"

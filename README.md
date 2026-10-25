@@ -64,14 +64,37 @@ Command line options: `--lan`, `--port <n>` (default 8000), `--no-browser`.
 | `SKIBASAR_EVENT_PIN` | Fixed PIN for phones (otherwise a random one is generated with `--lan`) |
 | `SKIBASAR_ADMIN_PIN` | Admin PIN; overrides the PIN set on the Einstellungen page |
 
+## Operation (admin notes)
+
+These are the technical details that were left out of the end-user manual on purpose.
+
+- **Linux:** start the packaged program in a terminal with `./skibasar` (with phones: `./skibasar --lan`).
+- **Data folder:** `data/` next to the executable (or `SKIBASAR_DATA_DIR`) contains the SQLite
+  database `skibasar.db`, `journal.csv`, `snapshots/` and `backups/`. Never delete it while the
+  Basar is running. Stop the server by closing the console window or with Ctrl+C.
+- **Journal:** every write (sale, storno, article change, settlement) is appended to
+  `journal.csv` and fsynced right away.
+- **Snapshots:** every 5 minutes (and after each settlement) `sellers.csv`, `articles.csv` and
+  `sales.csv` are written to `data/snapshots/` – `;`-separated, UTF-8 with BOM, so they open
+  directly in Excel/LibreOffice. Together with `journal.csv` they let the Basar be reconstructed
+  by hand.
+- **Restore a backup:** close the program, delete `skibasar.db-wal` and `skibasar.db-shm`, copy the
+  newest file from `data/backups/` to `data/skibasar.db`, restart.
+- **Money:** commission is calculated once per seller on the sum of their sales and rounded
+  half-up to the cent.
+
 ## Building the executables
 
-Builds must be done on the target OS with the same spec file:
+Builds must be done on the target OS with the same spec file. The build also renders
+`docs/Anleitung.md` to `dist/Anleitung.html`, which ships in the release archives.
 
 ```bash
 ./packaging/build.sh        # Linux   -> dist/skibasar
-./packaging/build.ps1       # Windows -> dist/skibasar.exe
+./packaging/build.ps1       # Windows -> dist/skibasar.exe plus .bat launchers
 ```
+
+The result is a single file that needs no Python installation. After building, check: start the
+program, open the browser, connect a phone over WiFi, test every printout.
 
 ## Project layout
 

@@ -2,73 +2,86 @@
 
 ## 1. Programm starten
 
-**Windows:** `skibasar.exe` (oder `Skibasar-starten.bat`) doppelklicken. Es öffnet sich ein schwarzes Fenster – das muss während des ganzen Basars offen bleiben. Der Browser öffnet sich automatisch unter `http://localhost:8000`.
+**Windows:** `skibasar.exe` (oder `Skibasar-starten.bat`) doppelklicken. Es öffnet sich ein schwarzes Fenster – **das muss während des ganzen Basars offen bleiben.** Der Browser öffnet das Programm automatisch. Fragt Windows beim ersten Start nach einer Firewall-Freigabe: „Privatnetzwerke“ zulassen.
 
-**Linux:** im Terminal `./skibasar` starten.
+**Linux:** Im Ordner mit dem Programm ein Terminal öffnen und `./skibasar` eingeben. Das Terminal muss während des ganzen Basars offen bleiben. Der Browser öffnet das Programm automatisch.
 
-Beim ersten Start fragt Windows evtl. nach einer Firewall-Freigabe: „Privatnetzwerke“ zulassen.
+**Mit Telefonen:** Unter Windows stattdessen `Skibasar-mit-Telefonen.bat` starten, unter Linux `./skibasar --lan`. Im Fenster und auf der Seite **Telefon** stehen ein QR-Code und eine **PIN**. Telefon ins gleiche WLAN bringen, QR-Code scannen, PIN eingeben. Der Laptop selbst braucht keine PIN.
 
-### Mit Telefonen im WLAN
-`Skibasar-mit-Telefonen.bat` starten (Linux: `./skibasar --lan`). Im Fenster erscheinen Adresse, **PIN** und ein QR-Code. Telefon ins gleiche WLAN bringen, QR-Code scannen, PIN eingeben. Auf der Seite „Telefon“ steht die Adresse ebenfalls. Der Laptop selbst braucht keine PIN.
+**Beenden:** das Fenster bzw. Terminal schließen (oder dort Strg+C drücken). Alle Daten bleiben erhalten – den Ordner `data` neben dem Programm nie löschen.
 
-Optionale Einstellungen (Umgebungsvariablen): `SKIBASAR_EVENT_PIN` (feste PIN für Telefone), `SKIBASAR_ADMIN_PIN` (Admin-PIN, überschreibt die in den Einstellungen festgelegte), `SKIBASAR_DATA_DIR` (anderer Datenordner).
+## 2. Vorbereitung (vor dem Basar)
 
-### Wo liegen die Daten?
-Im Ordner `data` **neben** dem Programm: Datenbank, `journal.csv`, `snapshots/` und `backups/`. Diesen Ordner nie löschen, solange der Basar läuft. Das Programm beenden: Fenster schließen (oder Strg+C).
+- **Einstellungen:** Name und Datum des Basars, Gebühren (Angebotsgebühr und Provision, getrennt für Händler und Privatverkäufer; bei Privatverkäufern gilt die Angebotsgebühr pro Artikel), erste Nummer für Privatverkäufer.
+- **Admin-PIN** festlegen (Einstellungen, mindestens 4 Ziffern) und gut aufbewahren. Sie wird gebraucht, um abgerechnete Verkäufer zu ändern oder eine Abrechnung zurückzunehmen.
+- **Händler** anlegen, jeweils mit eigenem Nummernbereich (z. B. 1000–1999), dann die CSV-Liste des Händlers hochladen (siehe unten).
+- Vor Verkaufsbeginn unter **Sicherung → Notfallliste** zwei Exemplare drucken und unter **Sicherung** einmal auf einen USB-Stick exportieren.
 
-## 2. Ablauf
+**CSV-Liste eines Händlers:** Datei auswählen, „Vorschau“ drücken. Die Vorschau zeigt alle Artikel, Fehler (rot) und die Summe. Erst **„Import übernehmen“** speichert. Bei Fehlern in der Datei geht das nicht – Datei korrigieren und neu hochladen.
 
-### Vorbereitung (vor dem Basar)
+Schickt ein Händler später eine neue Liste, einfach erneut hochladen. Die Vorschau zeigt dann farbig, was **neu** (grün), **geändert** (gelb) oder **unverändert** (grau) ist. Artikel, die in der neuen Datei fehlen, sind rot durchgestrichen und werden beim Übernehmen **gelöscht** – das Programm fragt vorher nach.
 
-- **Einstellungen** – Name und Datum des Basars, erste Nummer für Privatverkäufer (Standard: 1), Gebühren (Angebotsgebühr und Provision, getrennt für Händler und Privatverkäufer; bei Privatverkäufern wird die Angebotsgebühr für jeden Artikel berechnet). Dort auch die **Admin-PIN** festlegen (mindestens 4 Ziffern); ohne sie sind Änderungen an abgerechneten Verkäufern und das Zurücknehmen einer Abrechnung gesperrt. Solange keine PIN eingerichtet ist, erscheint auf der Startseite ein Hinweis. Zum Ändern wird die bisherige PIN verlangt – die PIN gut aufbewahren.
-- **Händler** – Händler anlegen mit Nummernbereich (z. B. 1000–1999), CSV-Liste hochladen. Die Vorschau zeigt Fehler und die Summe; erst „Importieren“ speichert. Ein erneuter Import zeigt vorher die Unterschiede.
-  - **Erneuter Import (zweite oder weitere CSV-Datei):** Die Vorschau vergleicht die Datei mit den bereits gespeicherten Artikeln des Händlers und markiert jede Zeile farbig: **Neu** (grün), **Geändert** (gelb), **Unverändert** (grau) und **Entfällt** (rot, durchgestrichen). Oben steht die Anzahl je Kategorie. Artikel, die nicht mehr in der Datei stehen, erscheinen am Tabellenende und werden beim Übernehmen **gelöscht**. Gibt es solche Artikel, fragt das Programm vor dem Übernehmen noch einmal nach – bitte die roten Zeilen prüfen. Bei Fehlern in der Datei (rote Zeilen mit Fehlertext) kann der Import nicht übernommen werden. Bei einem bereits abgerechneten Händler ist kein Import mehr möglich.
-  - **Artikel manuell hinzufügen:** Auf der Händlerseite unter „+ Artikel manuell hinzufügen“ lassen sich einzelne Artikel erfassen (z. B. Nachlieferungen am Morgen des Basars): Nummer innerhalb des Nummernbereichs des Händlers, Artikel, Marke, Größe, Farbe und Preis. Die Nummer muss frei sein. Bei abgerechneten Händlern ist das nicht mehr möglich. Ein späterer Import führt solche Artikel als „Entfällt“, wenn sie nicht in der Datei stehen – die Datei also vorher ergänzen oder die Löschung bewusst bestätigen.
-  - Die Artikelliste des Händlers zeigt den Status in Klartext (verkauft, zurückgegeben, zurückgezogen, nicht verkauft); die Verkäuferübersicht zusätzlich die Summe aller Artikel und den Verkaufswert.
+Einzelne Nachlieferungen eines Händlers lassen sich auf der Händlerseite unter **„+ Artikel manuell hinzufügen“** erfassen (Nummer aus dem Bereich des Händlers). Achtung: Ein späterer CSV-Import löscht diese Artikel wieder, wenn sie nicht in der Datei stehen.
 
-### Am Basartag (die Nummern entsprechen der Leiste oben im Programm)
+## 3. Am Basartag
 
-1. **Annahme** – Verkäufer anlegen, dann Artikel erfassen: Beschreibung, Marke, Größe, Preis, Enter. Die nächste Nummer wird groß angezeigt – den Kleber mit dieser Nummer auf den Artikel kleben. Unter der Artikelliste steht der **Betrag der Angebotsgebühr** (Artikel × Gebühr); wird er gleich bar bezahlt, auf „Gebühr kassiert“ klicken – sonst wird die Gebühr später bei der Abholung abgezogen. Kommen danach noch Artikel dazu, erscheint nur der Restbetrag. Am Ende die **Verkäuferliste** drucken.
-2. **Kasse** – Nummer tippen, Enter. Rote Meldung bei unbekannten, bereits verkauften oder zurückgenommenen Nummern. „Verkauf abschließen“ speichert; Beleg optional drucken. Falsche Verkäufe: unter „Verkäufe“ **stornieren** – die Artikel sind danach wieder frei.
-3. **Abholung** – Verkäufer suchen (Name, Artikelnummer oder bei Händlern die Händlernummer; private Verkäufer haben keine sichtbare Verkäufernummer). Nicht verkaufte Artikel werden als zurückgegeben abgehakt. Die Vorschau ändert nichts; erst **„Abrechnung abschließen“** speichert. Danach die Rechnung drucken und unterschreiben lassen. Bei einem Irrtum gibt es auf derselben Seite **„Abrechnung zurücknehmen“** (Admin-PIN nötig): Die Abrechnung wird gelöscht, zurückgegebene Artikel sind wieder frei, die gedruckte Rechnung ist ungültig, und der Verkäufer kann neu abgerechnet werden.
-4. **Übersicht** – Tabellen für Verkäufer, Artikel und Verkäufe; Fehler können jederzeit korrigiert werden. Jede Änderung steht im Protokoll. Bei bereits abgerechneten Verkäufern ist die Admin-PIN nötig.
-5. **Abschluss** – Letzter Schritt. Es gibt zwei Kassen:
-   - Die **Basar-Kasse**: Verkäufe, bei der Annahme bar bezahlte Gebühren und Auszahlungen bei der Abholung. Wechselgeld und den gezählten Inhalt am Ende eintragen – der Kassensturz zeigt die Differenz zum erwarteten Betrag.
-   - Die **Kuchen-Kasse**: Wechselgeld und gezählten Inhalt am Ende eintragen. Der Erlös des Kuchenverkaufs ergibt sich daraus (gezählt minus Wechselgeld).
+Die Nummern entsprechen der Leiste oben im Programm.
 
-   Dazu alle Ausgaben eintragen (je „Basar“ oder „Kuchenverkauf“). Wurde eine Ausgabe bar aus der Kasse bezahlt, das Häkchen setzen – sie wird dann bei der passenden Kasse berücksichtigt. Die Seite zeigt den Gewinn des Basars (Provision und Gebühren minus Basar-Ausgaben), den Gewinn des Kuchenverkaufs und den Gesamtgewinn. Das Wechselgeld ist kein Gewinn. Solange Verkäufer nicht abgerechnet sind, fehlt deren Provision im Ergebnis – das steht als Hinweis auf der Seite.
+### 1 · Annahme
+1. Verkäufer suchen oder neu anlegen. Gibt es schon jemanden mit gleichem Namen, erscheint ein Hinweis – dann bitte die Adresse eintragen, damit der Verkäufer bei der Abholung eindeutig ist.
+2. Artikel erfassen: Bezeichnung, Marke, Größe, Farbe, Preis, Enter. Die **nächste Nummer** wird groß angezeigt – den Kleber mit dieser Nummer auf den Artikel kleben. Bei einem Preis über 500 € fragt das Programm zur Sicherheit nach („Preis stimmt“).
+3. Vertippt? **„Letzten Artikel zurücknehmen“** – die Nummer wird wieder frei.
+4. Unter der Liste steht die **Angebotsgebühr**. Zahlt der Verkäufer gleich bar: „Gebühr kassiert“ drücken. Sonst wird sie bei der Abholung abgezogen.
+5. **Verkäuferliste drucken** und dem Verkäufer mitgeben.
 
-   Unter dem Ergebnis steht die **Basar-Gesamtabrechnung**: Summen für den ganzen Basar (Verkäufe, Provision, Gebühren, Auszahlungen, getrennt nach Privatverkäufern und Händlern) und eine Liste der noch nicht abgeholten Verkäufer. Die Seite lässt sich als Ganzes drucken.
+Lehrteam und Basarhelfer: beim Anlegen „Keine Angebotsgebühr“ ankreuzen. Die Provision auf verkaufte Artikel zahlen sie trotzdem.
 
-**Verlorene oder gestohlene Artikel:** Fällt bei der Abholung auf, dass ein Artikel nicht mehr da ist, übernimmt der Verein die Kosten. So geht ihr vor:
-1. In der **Abholung** den Verkäufer öffnen. Ganz unten auf der Seite steht eingeklappt „Artikel nicht auffindbar? (verloren / gestohlen)“. Aufklappen, den fehlenden Artikel ankreuzen und „Als verloren melden“ drücken (mit Rückfrage). Die Auswahl ist bewusst abseits der normalen Abrechnung, damit sie nicht versehentlich passiert. Entfernt ihr bei der Abrechnung den Haken bei einem Artikel, erscheint ein Hinweis mit dem Knopf „Zum Melden springen“. Der Hinweis meldet nichts von allein; wer ihn nicht braucht, schließt die Abrechnung einfach wie gewohnt ab.
-2. Der Artikel steht nun in der Liste „Verloren – vom Verein erstattet“ und die Auszahlung wird neu berechnet: Der Verkäufer bekommt den Artikelpreis wie bei einem Verkauf, die Provision wird wie bei einem Verkauf abgezogen. Der Betrag steht auch auf der Rechnung. Danach wie gewohnt „Abrechnung abschließen“.
-3. Wird der Artikel doch noch gefunden: In der Liste „Verloren“ ankreuzen und „Doch gefunden – wieder frei“ drücken. Das geht nur, solange der Verkäufer nicht abgerechnet ist.
-4. Der Artikel kann an der Kasse nicht mehr verkauft werden. Im **Abschluss** zieht die Seite die Erstattung vom Gewinn des Basars ab („Erstattung verlorener Artikel“); in der Basar-Gesamtabrechnung steht der Betrag als eigene Zeile. Der Kassensturz stimmt weiterhin: Die Erstattung wird mit ausgezahlt, ohne dass dafür Geld eingenommen wurde.
+### 2 · Kasse
+1. Artikelnummer tippen, Enter – für jeden Artikel. Eine rote Meldung erscheint bei unbekannten oder schon verkauften Nummern.
+2. Falsch eingetippt? Mit ✕ einen Artikel entfernen oder **„Letzten entfernen“**.
+3. Optional bei **„Gegeben“** den Betrag des Kunden eintragen – das Programm zeigt das Rückgeld.
+4. **„Verkauf abschließen“**. Beleg bei Bedarf drucken.
 
-Lehrteam und Basarhelfer werden bei der Annahme mit „Keine Angebotsgebühr“ markiert: Sie zahlen keine Angebotsgebühr, aber trotzdem die Provision auf ihre verkauften Artikel.
+Falscher Verkauf schon abgeschlossen? Unter **Verkäufe** den Verkauf öffnen und **stornieren**. Die Artikel sind danach wieder verkaufbar.
 
-Alle Beträge werden intern in Cent gerechnet; die Provision wird einmal pro Verkäufer auf die Verkaufssumme berechnet und kaufmännisch gerundet.
+### 3 · Abholung
+1. Verkäufer suchen (Name, eine seiner Artikelnummern oder bei Händlern die Händlernummer).
+2. Alle nicht verkauften Artikel sind schon als „zurückgegeben“ angehakt. Fehlt einer davon, den Haken entfernen (siehe „Verlorene Artikel“ unten).
+3. Die Seite zeigt die Auszahlung – Gebühren und Provision sind schon abgezogen. Erst **„Abrechnung abschließen“** speichert.
+4. **Rechnung drucken**, Geld auszahlen, unterschreiben lassen.
 
-## 3. Notfallplan (wenn das Programm ausfällt)
+### 4 · Übersicht
+Tabellen mit allen Verkäufern, Artikeln und Verkäufen. Fehler lassen sich hier jederzeit korrigieren. Unter **Protokoll** steht jede Änderung. Bei bereits abgerechneten Verkäufern ist die Admin-PIN nötig.
 
-**Vorbereitung – vor Verkaufsbeginn:**
-- Unter **Sicherung → Notfallliste** ausdrucken (alle Artikel nach Nummer mit Preis und Verkäufer). Mindestens zwei Exemplare.
-- Unter **Sicherung → Exportieren** einmal auf einen USB-Stick sichern.
+### 5 · Abschluss (am Ende des Tages)
+1. Für beide Kassen – **Basar-Kasse** und **Kuchen-Kasse** – das Wechselgeld vom Morgen und den am Ende gezählten Betrag eintragen, „Speichern“.
+2. Alle **Ausgaben** eintragen (z. B. Plakate, Kuchenzutaten) und angeben, ob sie zum Basar oder zum Kuchenverkauf gehören. Wurde eine Ausgabe bar aus der Kasse bezahlt, das Häkchen setzen.
+3. Die Seite zeigt den Gewinn von Basar, Kuchenverkauf und gesamt sowie beim **Kassensturz**, ob in der Basar-Kasse Geld fehlt oder zu viel ist.
+4. Darunter steht die **Basar-Gesamtabrechnung** mit allen Summen und den Verkäufern, die noch nicht abgeholt haben. Die Seite **drucken**.
 
-**Wenn etwas hakt:**
-1. Ruhe bewahren, die Daten sind gespeichert. Jede Änderung steht sofort in `data/journal.csv`.
-2. Zuerst versuchen: Fenster schließen, Programm neu starten. Alle Daten sind wieder da.
-3. Startet es nicht mehr, kann die Kasse **auf Papier** weiterlaufen: Nummern in der Notfallliste nachschlagen, verkaufte Nummern auf einer Strichliste mit Verkaufsnummer notieren.
-4. Die Dateien in `data/snapshots/` (`sellers.csv`, `articles.csv`, `sales.csv`) lassen sich mit Excel oder LibreOffice öffnen (Trennzeichen `;`, UTF-8). Sie enthalten den Stand von höchstens 5 Minuten vorher; `journal.csv` listet alles danach.
-5. Zum Wiederherstellen: Programm schließen, aus `data/backups/` die neueste Datei nach `data/skibasar.db` kopieren (die Dateien `skibasar.db-wal` und `skibasar.db-shm` vorher löschen), dann neu starten.
-6. Nach der Reparatur Papier-Verkäufe nachtragen (Kasse) oder bei der Abholung von Hand verrechnen.
+Solange noch nicht alle Verkäufer abgerechnet sind, ist das Ergebnis vorläufig – die Seite weist darauf hin.
 
-## 4. Programm selbst bauen (für Entwickler)
+## 4. Sonderfälle
 
-Jeder Build läuft auf dem Zielsystem, ein Windows-Build also auf einem Windows-Rechner. Voraussetzung: [uv](https://docs.astral.sh/uv/).
+**Verlorene oder gestohlene Artikel:** Fehlt bei der Abholung ein Artikel, erstattet der Verein den Preis.
+1. Ganz unten auf der Abholungsseite „Artikel nicht auffindbar? (verloren / gestohlen)“ aufklappen, den Artikel ankreuzen, **„Als verloren melden“**.
+2. Der Verkäufer bekommt den Preis wie bei einem Verkauf (abzüglich Provision); das steht auch auf der Rechnung. Dann wie gewohnt abrechnen.
+3. Taucht der Artikel doch auf: in der Liste „Verloren“ ankreuzen, **„Doch gefunden – wieder frei“** (nur vor dem Abrechnen).
 
-- Linux: `./packaging/build.sh` → `dist/skibasar`
-- Windows: `.\packaging\build.ps1` → `dist\skibasar.exe` plus Start-Dateien
+Die Erstattung erscheint im Abschluss als eigene Zeile und wird vom Gewinn abgezogen.
 
-Das Ergebnis ist eine einzelne Datei ohne Python-Installation. Danach prüfen: Programm starten, Browser öffnen, Telefon über WLAN verbinden, alle Ausdrucke testen.
+**Abrechnung irrtümlich abgeschlossen:** Auf der Abholungsseite des Verkäufers **„Abrechnung zurücknehmen“** (Admin-PIN nötig). Die gedruckte Rechnung ist dann ungültig; der Verkäufer kann neu abgerechnet werden.
+
+## 5. Wenn das Programm ausfällt
+
+1. **Ruhe bewahren** – jede Eingabe ist sofort gespeichert.
+2. Programmfenster (bzw. Terminal) schließen, Programm neu starten. Alle Daten sind wieder da.
+3. Startet es nicht mehr: Die Kasse läuft **auf Papier** weiter. Preise in der Notfallliste nachschlagen und für jeden verkauften Artikel Nummer und Preis aufschreiben.
+4. Den Admin bzw. die technisch verantwortliche Person holen.
+5. Läuft das Programm wieder: die Papier-Verkäufe an der Kasse nachtragen.
+
+Ohne Admin geht unter **Sicherung** auch: **„Jetzt sichern“** oder **„Als ZIP herunterladen“**, um den aktuellen Stand auf einen USB-Stick zu kopieren.
+
+---
+
+Technische Details (Einstellungen, Datensicherung und Wiederherstellung, Programm bauen): <https://github.com/Feserich/shred_and_cake>
