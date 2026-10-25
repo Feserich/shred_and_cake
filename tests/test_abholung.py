@@ -186,3 +186,31 @@ def test_undo_settlement(client, monkeypatch):
     assert r.status_code == 422 and "nicht abgerechnet" in r.text
     client.post("/abholung/1/abschluss", data={"returned": ["1", "2"], "expected_payout": "300"})
     assert client.get("/abholung/1/rechnung").status_code == 200
+
+
+def test_mark_lost_needs_a_matching_article(client):
+    r = client.post("/abholung/1/verloren", data={})
+    assert r.status_code == 422 and "mindestens einen Artikel" in r.text
+    _sell(client, 0)
+    r = client.post("/abholung/1/verloren", data={"numbers": ["0"]})  # sold, cannot be lost
+    assert r.status_code == 422
+    r = client.post("/abholung/1/verloren", data={"numbers": ["1"], "action": "found"})
+    assert r.status_code == 422  # was never lost
+    with client.app.state.session_factory() as s:
+        assert {a.number: a.status for a in s.get(Seller, 1).articles}[1] == (
+            ArticleStatus.available
+        )
+
+
+def test_invoice_shows_fee_paid_at_entry_and_rest_deducted(client):
+    seller_url = "/annahme/1"
+    client.post(f"{seller_url}/gebuehr")  # 3 articles x 2,00 € paid in cash
+    client.post(
+        f"{seller_url}/artikel",
+        data={"expected_number": "3", "description": "Ding 3", "price": "4,00"},
+    )
+    _sell(client, 0)
+    client.post("/abholung/1/abschluss", data={"returned": ["1", "2", "3"]})
+    invoice = client.get("/abholung/1/rechnung").text
+    assert "Angebotsgebühr 6,00 € bei der Annahme bezahlt" in invoice
+    assert "weitere 2,00 € wurden bei der Abrechnung abgezogen" in invoice

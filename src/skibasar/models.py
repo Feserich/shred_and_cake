@@ -33,6 +33,20 @@ class ArticleStatus(enum.StrEnum):
     withdrawn = "withdrawn"
     lost = "lost"  # lost/stolen at the Basar: the club reimburses the seller
 
+    @property
+    def label(self) -> str:
+        """German name shown in pages, printouts and messages."""
+        return _ARTICLE_STATUS_LABELS[self]
+
+
+_ARTICLE_STATUS_LABELS = {
+    ArticleStatus.available: "nicht verkauft",
+    ArticleStatus.sold: "verkauft",
+    ArticleStatus.returned: "zurückgegeben",
+    ArticleStatus.withdrawn: "zurückgezogen",
+    ArticleStatus.lost: "verloren",
+}
+
 
 class Event(Base):
     __tablename__ = "event"

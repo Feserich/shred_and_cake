@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Übersicht Artikel{% endblock %}
 {% block content %}
-{% set labels = {"available": "frei", "sold": "verkauft", "returned": "zurückgegeben", "withdrawn": "zurückgezogen", "lost": "verloren"} %}
 {% set badge = {"available": "warn", "sold": "ok", "returned": "off", "withdrawn": "off", "lost": "error"} %}
 <h1>Übersicht</h1>
 {% include "uebersicht_tabs.html" %}
@@ -9,7 +8,7 @@
   <input type="search" name="q" value="{{ q }}" placeholder="Nummer, Bezeichnung, Marke oder Verkäufer" aria-label="Suche">
   <select name="status" aria-label="Status">
     <option value="">Alle Status</option>
-    {% for key, label in labels.items() %}<option value="{{ key }}" {{ "selected" if status == key }}>{{ label|capitalize }}</option>{% endfor %}
+    {% for st in ArticleStatus %}<option value="{{ st.value }}" {{ "selected" if status == st.value }}>{{ st.label|capitalize }}</option>{% endfor %}
   </select>
   <button type="submit">Filtern</button>
 </form>
@@ -19,7 +18,7 @@
   <tr class="{{ 'off' if a.status.value in ('returned', 'withdrawn', 'lost') }}">
     <td class="num">{{ a.number }}</td><td>{{ a.description }}</td><td>{{ a.brand }}</td><td>{{ a.size }}</td>
     <td class="num">{{ a.price_cents|eur }}</td><td>{{ a.seller.display_name }}</td>
-    <td><span class="badge {{ badge[a.status.value] }}">{{ labels[a.status.value] }}</span></td>
+    <td><span class="badge {{ badge[a.status.value] }}">{{ a.status.label }}</span></td>
     <td><a href="/uebersicht/artikel/{{ a.number }}">Bearbeiten</a></td>
   </tr>
   {% else %}

@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from ..config import admin_pin
 from ..csv_import import parse_shop_csv, validate
-from ..models import Article, Event, Seller, SellerType
+from ..models import Article, ArticleStatus, Event, Seller, SellerType
 from ..money import (
     MAX_COMMISSION_BP,
     MoneyError,
@@ -26,6 +26,7 @@ from ..services.numbering import RangeError
 
 templates = Jinja2Templates(directory=Path(__file__).parent.parent / "templates")
 templates.env.filters["eur"] = format_eur
+templates.env.globals["ArticleStatus"] = ArticleStatus
 
 router = APIRouter()
 

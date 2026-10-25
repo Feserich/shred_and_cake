@@ -194,3 +194,36 @@ def test_gesamtabrechnung_flags_sale_items_that_do_not_add_up(client):
         s.execute(update(SaleItem).where(SaleItem.number == 1).values(price_cents=1))
         s.commit()
     assert "gehen nicht auf" in client.get("/gesamtabrechnung").text
+
+
+@pytest.mark.parametrize(
+    ("data", "message"),
+    [
+        ({"description": " ", "price": "8", "status": "available"}, "Artikelbezeichnung fehlt"),
+        ({"description": "x", "price": "0", "status": "available"}, "größer als 0"),
+        ({"description": "x", "price": "8", "status": "sold"}, "Unbekannter Status"),
+        ({"description": "x", "price": "8", "status": "kaputt"}, "Unbekannter Status"),
+    ],
+)
+def test_article_edit_rejects_invalid_values(client, data, message):
+    r = client.post("/uebersicht/artikel/1", data=data)
+    assert r.status_code == 422 and message in r.text
+    with client.app.state.session_factory() as s:
+        a = s.scalar(select(Article).where(Article.number == 1))
+        assert (a.description, a.price_cents, a.status) == ("Ding 1", 555, ArticleStatus.available)
+
+
+def test_unchanged_article_edit_writes_no_audit_entry(client):
+    before = len(_audit(client))
+    r = client.post(
+        "/uebersicht/artikel/1",
+        data={"description": "Ding 1", "price": "5,55", "status": "available"},
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    assert len(_audit(client)) == before
+
+
+def test_unknown_article_and_seller_404(client):
+    assert client.get("/uebersicht/artikel/999").status_code == 404
+    assert client.get("/uebersicht/verkaeufer/999").status_code == 404

@@ -187,3 +187,106 @@ def test_second_import_marks_changes_and_confirms_removal(client):
     r = client.post(f"{detail}/import", files={"file": ("k.csv", shorter)})
     assert 'class="row-removed"' in r.text
     assert 'data-confirm="1 vorhandener Artikel wird gelöscht' in r.text
+
+
+def _shop(client, name="Sport", start="1000", end="1999"):
+    return client.post(
+        "/haendler",
+        data={"name": name, "range_start": start, "range_end": end},
+        follow_redirects=False,
+    ).headers["location"]
+
+
+def _import(client, detail, data):
+    r = client.post(f"{detail}/import", files={"file": ("k.csv", data)})
+    return r, r.text.split(f"{detail}/import/")[1].split('"')[0] if "/import/" in r.text else None
+
+
+def test_edit_shop_data_and_range(client):
+    detail = _shop(client)
+    _shop(client, name="Andere", start="3000", end="3999")
+    _, token = _import(client, detail, FIXTURE.read_bytes())  # articles 1000-1040
+    client.post(f"{detail}/import/{token}")
+
+    data = {"name": "Sport Neu", "range_start": "1000", "range_end": "2999", "phone": "0751"}
+    r = client.post(detail, data=data, follow_redirects=True)
+    assert r.status_code == 200 and "Sport Neu" in r.text and 'value="2999"' in r.text
+    with client.app.state.session_factory() as s:
+        entry = s.query(AuditLog).filter_by(entity="seller", action="update").one()
+        assert "Sport Neu" in entry.after and '"Sport"' in entry.before
+
+    r = client.post(detail, data={**data, "range_start": "1010"})
+    assert r.status_code == 422 and "Artikel 1000 läge außerhalb des neuen Bereichs" in r.text
+    r = client.post(detail, data={**data, "range_end": "3500"})
+    assert r.status_code == 422 and "überschneidet" in r.text
+    r = client.post(detail, data={**data, "name": " "})
+    assert r.status_code == 422 and "Name fehlt" in r.text
+    r = client.post(detail, data={**data, "range_end": "abc"})
+    assert r.status_code == 422 and "aus Zahlen bestehen" in r.text
+    r = client.post(detail, data={**data, "fee_exempt": "on", "offer_fee_paid_at_entry": "on"})
+    assert r.status_code == 422
+    with client.app.state.session_factory() as s:
+        from skibasar.models import Seller
+
+        shop = s.get(Seller, int(detail.rsplit("/", 1)[1]))
+        assert (shop.name, shop.number_range_start, shop.number_range_end) == (
+            "Sport Neu",
+            1000,
+            2999,
+        )
+        assert not shop.fee_exempt
+
+
+def test_edit_unknown_or_private_seller_as_shop_is_404(client):
+    client.post("/annahme/verkaeufer", data={"name": "Huber"})
+    data = {"name": "x", "range_start": "1", "range_end": "2"}
+    assert client.post("/haendler/1", data=data).status_code == 404  # private seller
+    assert client.post("/haendler/999", data=data).status_code == 404
+
+
+def test_reimport_cannot_remove_or_change_sold_article(client):
+    detail = _shop(client)
+    _, token = _import(client, detail, FIXTURE.read_bytes())
+    client.post(f"{detail}/import/{token}")
+    raw = FIXTURE.read_bytes().split(b"\n")
+    without_1000 = b"\n".join([raw[0], *raw[2:-3]])
+    r, stale_token = _import(client, detail, without_1000)  # preview while 1000 is unsold
+    assert "data-confirm" in r.text
+
+    client.post("/kasse/abschluss", data={"cart": ["1000"]})
+    r, _ = _import(client, detail, without_1000)
+    assert "Artikel 1000 ist bereits verkauft" in r.text and "nicht übernommen" in r.text
+    changed = FIXTURE.read_bytes().replace(b"1000;1000;Ski;Head", b"1000;1000;Ski;Atomic")
+    r, _ = _import(client, detail, changed)
+    assert "Artikel 1000 ist bereits verkauft" in r.text
+
+    # the preview from before the sale must not be committed any more
+    r = client.post(f"{detail}/import/{stale_token}")
+    assert r.status_code == 422 and "enthält Fehler" in r.text
+    with client.app.state.session_factory() as s:
+        from skibasar.models import Article
+
+        assert s.query(Article).filter_by(number=1000).one().description == "Ski"
+        assert s.query(Article).count() == 41
+
+
+def test_manual_shop_article_validation(client):
+    detail = _shop(client)
+    data = {"number": "1500", "description": "Helm", "price": "49,90"}
+    for bad, message in (
+        ({"number": "abc"}, "muss eine Zahl sein"),
+        ({"description": " "}, "Artikelname fehlt"),
+        ({"price": "0"}, "größer als 0"),
+        ({"price": "1,2,3"}, "kein gültiger Betrag"),
+    ):
+        r = client.post(f"{detail}/artikel", data={**data, **bad})
+        assert r.status_code == 422 and message in r.text, bad
+    with client.app.state.session_factory() as s:
+        from datetime import datetime
+
+        from skibasar.models import Seller
+
+        s.get(Seller, int(detail.rsplit("/", 1)[1])).settled_at = datetime.now()
+        s.commit()
+    r = client.post(f"{detail}/artikel", data=data)
+    assert r.status_code == 422 and "bereits abgerechnet" in r.text

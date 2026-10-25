@@ -15,7 +15,7 @@
   {% for a in seller.articles %}
   <tr>
     <td class="num">{{ a.number }}</td><td>{{ a.description }}</td><td class="num">{{ a.price_cents|eur }}</td>
-    <td>{{ {"sold": "verkauft", "returned": "zurückgegeben", "withdrawn": "zurückgezogen", "lost": "verloren", "available": "nicht verkauft"}[a.status.value] }}</td>
+    <td>{{ a.status.label }}</td>
   </tr>
   {% endfor %}
 </table>

@@ -21,12 +21,9 @@ def lookup(s: Session, number: int, in_cart: list[int]) -> Article:
     if article.status == ArticleStatus.sold:
         raise KasseError(f"Nummer {number} ist schon verkauft")
     if article.status != ArticleStatus.available:
-        labels = {
-            ArticleStatus.returned: "zurückgegeben",
-            ArticleStatus.lost: "als verloren markiert",
-        }
-        label = labels.get(article.status, "zurückgezogen")
-        raise KasseError(f"Nummer {number} wurde {label} und darf nicht verkauft werden")
+        raise KasseError(
+            f"Nummer {number} ist {article.status.label} und darf nicht verkauft werden"
+        )
     if article.seller.settled_at is not None:
         raise KasseError(f"Der Verkäufer von Nummer {number} ist bereits abgerechnet")
     return article

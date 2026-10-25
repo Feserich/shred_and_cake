@@ -182,14 +182,14 @@ def diff_import(s: Session, shop: Seller, parsed: ParsedCsv) -> ImportDiff:
         elif _differs(article, row):
             diff.changed.append(row)
             if article.status != ArticleStatus.available:
-                diff.errors.append(f"Artikel {article.number} ist bereits {article.status.value}")
+                diff.errors.append(f"Artikel {article.number} ist bereits {article.status.label}")
         else:
             diff.unchanged.append(row)
     for number, article in existing.items():
         if number not in in_file:
             diff.removed.append(article)
             if article.status != ArticleStatus.available:
-                diff.errors.append(f"Artikel {number} ist bereits {article.status.value}")
+                diff.errors.append(f"Artikel {number} ist bereits {article.status.label}")
     return diff
 
 

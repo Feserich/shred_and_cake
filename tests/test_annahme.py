@@ -265,3 +265,67 @@ def test_same_name_without_address_is_flagged(client):
         "mehrere Verkäufer mit diesem Namen"
         in client.get(second.replace("/annahme/", "/abholung/")).text
     )
+
+
+def _settle(client, url):
+    from datetime import datetime
+
+    from skibasar.models import Seller
+
+    with client.app.state.session_factory() as s:
+        s.get(Seller, int(url.rsplit("/", 1)[1])).settled_at = datetime.now()
+        s.commit()
+
+
+def test_settled_seller_is_locked_in_annahme(client):
+    client.post("/einstellungen", data={"name": "B", "offer_fee_private": "1,00"})
+    url = _seller(client)
+    _article(client, url, 0)
+    _settle(client, url)
+    r = client.post(url, data={"name": "Maier"})
+    assert r.status_code == 422 and "bereits abgerechnet" in r.text
+    r = _article(client, url, 1)
+    assert r.status_code == 422 and "bereits abgerechnet" in r.text
+    r = client.post(f"{url}/gebuehr")
+    assert r.status_code == 422 and "bereits abgerechnet" in r.text
+    assert _fee_at_entry(client) == 0
+
+
+def test_exempt_seller_cannot_pay_fee(client):
+    client.post("/einstellungen", data={"name": "B", "offer_fee_private": "1,00"})
+    url = _seller(client, fee_exempt="on")
+    _article(client, url, 0)
+    r = client.post(f"{url}/gebuehr")
+    assert r.status_code == 422 and "zahlt keine Angebotsgebühr" in r.text
+    assert _fee_at_entry(client) == 0
+
+
+def test_article_without_description_refused(client):
+    url = _seller(client)
+    r = _article(client, url, 0, desc=" ")
+    assert r.status_code == 422 and "Artikelbezeichnung fehlt" in r.text
+
+
+def test_shop_articles_and_fee_not_handled_in_annahme(session):
+    from skibasar.models import Seller, SellerType
+    from skibasar.services import annahme
+
+    shop = Seller(type=SellerType.shop, name="Shop", number_range_start=1000, number_range_end=1999)
+    session.add(shop)
+    session.commit()
+    with pytest.raises(annahme.AnnahmeError, match="CSV-Import"):
+        annahme.add_article(session, shop, expected_number=None, description="Ski", price_cents=100)
+    with pytest.raises(annahme.AnnahmeError, match="Händlerdaten"):
+        annahme.collect_fee(session, shop)
+
+
+def test_number_race_on_insert_gives_retry_message(client, monkeypatch):
+    from skibasar.services import annahme
+
+    url = _seller(client)
+    _article(client, url, 0)
+    # Another device inserted number 0 between computing the next number and saving
+    monkeypatch.setattr(annahme, "next_private_number", lambda s: 0)
+    r = client.post(f"{url}/artikel", data={"description": "Helm", "price": "5"})
+    assert r.status_code == 422 and "gerade vergeben" in r.text
+    assert "Helm" not in client.get(url).text.split("<h2>Stammdaten")[0]

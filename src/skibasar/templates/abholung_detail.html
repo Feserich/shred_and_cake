@@ -42,7 +42,7 @@
     {% for a in p.other %}
     <tr class="off">
       <td></td><td class="num">{{ a.number }}</td><td>{{ a.description }}</td><td class="num">{{ a.price_cents|eur }}</td>
-      <td>{{ "zurückgegeben" if a.status.value == "returned" else "zurückgezogen" }}</td>
+      <td>{{ a.status.label }}</td>
     </tr>
     {% endfor %}
   </table></div>

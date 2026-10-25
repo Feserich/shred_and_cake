@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Artikel {{ a.number }} bearbeiten{% endblock %}
 {% block content %}
-{% set labels = {"available": "frei", "returned": "zurückgegeben", "withdrawn": "zurückgezogen", "lost": "verloren"} %}
 <p><a href="/uebersicht/artikel">← Übersicht</a></p>
 <h1>Artikel Nr. {{ a.number }}</h1>
 <p class="muted">Verkäufer: {{ a.seller.display_name }}</p>
@@ -18,9 +17,9 @@
     <label>Preis <input name="price" data-price inputmode="decimal" value="{{ a.price_cents|eur(false) }}" {{ "readonly" if a.status.value == "sold" }}></label>
     <label>Status
       {% if a.status.value == "sold" %}
-      <input value="verkauft" readonly><input type="hidden" name="status" value="sold">
+      <input value="{{ a.status.label }}" readonly><input type="hidden" name="status" value="sold">
       {% else %}
-      <select name="status">{% for key, label in labels.items() %}<option value="{{ key }}" {{ "selected" if a.status.value == key }}>{{ label|capitalize }}</option>{% endfor %}</select>
+      <select name="status">{% for st in ArticleStatus if st != ArticleStatus.sold %}<option value="{{ st.value }}" {{ "selected" if a.status == st }}>{{ st.label|capitalize }}</option>{% endfor %}</select>
       {% endif %}
     </label>
   </div>

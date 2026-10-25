@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 
 from skibasar.main import create_app
 from skibasar.models import Article, ArticleStatus, Sale, Seller
@@ -155,3 +155,43 @@ def test_sale_refused_when_seller_settled_after_cart_was_checked(client):
         assert (
             s.scalar(select(func.count()).select_from(Sale).where(Sale.cancelled.is_(False))) == 0
         )
+
+
+def test_duplicate_and_unknown_numbers_refused_at_checkout(client):
+    r = _sell(client, 0, 0)
+    assert r.status_code == 409 and "doppelt" in r.text
+    r = _sell(client, 0, 99)
+    assert r.status_code == 409 and "gibt es nicht" in r.text
+    assert _add(client, 0).status_code == 200  # nothing was sold
+
+
+def test_article_sold_between_check_and_update_rolls_back_whole_sale(client, monkeypatch):
+    factory = client.app.state.session_factory
+    real_load_cart = kasse.load_cart
+
+    def load_cart_then_other_device_sells(s, numbers):
+        articles = real_load_cart(s, numbers)
+        with factory() as other:
+            other.execute(
+                update(Article).where(Article.number == 1).values(status=ArticleStatus.sold)
+            )
+            other.commit()
+        return articles
+
+    monkeypatch.setattr(kasse, "load_cart", load_cart_then_other_device_sells)
+    with factory() as s, pytest.raises(kasse.KasseError, match="anderswo verkauft"):
+        kasse.complete_sale(s, [0, 1])
+    with factory() as s:
+        assert s.scalar(select(Article).where(Article.number == 0)).status == (
+            ArticleStatus.available
+        )
+        assert s.scalar(select(func.count()).select_from(Sale)) == 0
+
+
+def test_given_amount_is_passed_to_sale_page(client):
+    r = client.post("/kasse/abschluss", data={"cart": ["0"], "given": "20"}, follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"].endswith("?given=2000")
+    r = client.post(
+        "/kasse/abschluss", data={"cart": ["1"], "given": "abc"}, follow_redirects=False
+    )
+    assert r.status_code == 303 and "?" not in r.headers["location"]
