@@ -9,6 +9,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from .. import __version__
 from ..config import admin_pin
 from ..csv_import import parse_shop_csv, validate
 from ..models import Article, ArticleStatus, Event, Seller, SellerType
@@ -27,6 +28,7 @@ from ..services.numbering import RangeError
 templates = Jinja2Templates(directory=Path(__file__).parent.parent / "templates")
 templates.env.filters["eur"] = format_eur
 templates.env.globals["ArticleStatus"] = ArticleStatus
+templates.env.globals["app_version"] = __version__
 
 router = APIRouter()
 

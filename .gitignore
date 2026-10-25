@@ -7,6 +7,9 @@ dist/
 .pytest_cache/
 .ruff_cache/
 
+# Generated at build time by packaging/skibasar.spec
+src/skibasar/_version.py
+
 # Runtime data (database, journal, backups)
 data/
 

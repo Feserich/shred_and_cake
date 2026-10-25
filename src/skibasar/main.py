@@ -127,6 +127,7 @@ def run(argv: list[str] | None = None) -> None:
     parser.add_argument("--lan", action="store_true", help="allow phones on the local network")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--no-browser", action="store_true", help="do not open the browser")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     args = parser.parse_args(argv)
 
     address = lan_url(args.port) if args.lan else None
@@ -136,7 +137,7 @@ def run(argv: list[str] | None = None) -> None:
     app.state.backup.start()
 
     local = f"http://localhost:{args.port}"
-    print(f"Skibasar läuft: {local}")
+    print(f"Skibasar {__version__} läuft: {local}")
     print(f"Daten: {db_path.parent.resolve()}")
     if args.lan:
         if address:

@@ -1,5 +1,7 @@
+import pytest
 from fastapi.testclient import TestClient
 
+from skibasar import __version__, main
 from skibasar.main import create_app
 
 
@@ -8,6 +10,16 @@ def test_index(tmp_path):
     r = client.get("/")
     assert r.status_code == 200
     assert "Skibasar" in r.text
+
+
+def test_version_is_shown(tmp_path, capsys):
+    client = TestClient(create_app(tmp_path / "app.db"))
+    assert f"Skibasar {__version__}" in client.get("/").text
+    assert f"Skibasar {__version__}" in client.get("/einstellungen").text
+    assert f"Skibasar {__version__}" not in client.get("/annahme").text
+    with pytest.raises(SystemExit):
+        main.run(["--version"])
+    assert capsys.readouterr().out.strip() == f"skibasar {__version__}"
 
 
 def test_errors_are_german_html_pages_not_json(tmp_path):
