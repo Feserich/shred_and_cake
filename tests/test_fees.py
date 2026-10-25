@@ -60,3 +60,12 @@ def test_fee_paid_for_part_of_the_articles():
         [], rules, fee_exempt=False, offer_fee_paid_at_entry=True, article_count=5, fee_units_paid=3
     )
     assert s.open_offer_fee_cents == 400
+
+
+def test_lost_articles_are_reimbursed_with_commission():
+    s = settle(
+        [6000], RULES, fee_exempt=False, offer_fee_paid_at_entry=False, lost_prices_cents=[4000]
+    )
+    # Sold total stays the real sales; the club pays the lost 40,00 on top
+    assert (s.sold_total_cents, s.lost_total_cents, s.commission_cents) == (6000, 4000, 1000)
+    assert s.payout_cents == 6000 + 4000 - 1000 - 200

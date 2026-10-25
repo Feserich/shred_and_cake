@@ -31,6 +31,7 @@ class ArticleStatus(enum.StrEnum):
     sold = "sold"
     returned = "returned"
     withdrawn = "withdrawn"
+    lost = "lost"  # lost/stolen at the Basar: the club reimburses the seller
 
 
 class Event(Base):
@@ -75,6 +76,7 @@ class Seller(Base):
     settled_at: Mapped[datetime | None] = mapped_column(DateTime)
     # Frozen at settlement so later fee changes never alter an issued invoice
     settled_sold_total_cents: Mapped[int | None] = mapped_column(Integer)
+    settled_lost_total_cents: Mapped[int | None] = mapped_column(Integer)
     settled_commission_cents: Mapped[int | None] = mapped_column(Integer)
     settled_open_fee_cents: Mapped[int | None] = mapped_column(Integer)
     settled_payout_cents: Mapped[int | None] = mapped_column(Integer)

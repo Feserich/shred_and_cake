@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Übersicht Artikel{% endblock %}
 {% block content %}
-{% set labels = {"available": "frei", "sold": "verkauft", "returned": "zurückgegeben", "withdrawn": "zurückgezogen"} %}
-{% set badge = {"available": "warn", "sold": "ok", "returned": "off", "withdrawn": "off"} %}
+{% set labels = {"available": "frei", "sold": "verkauft", "returned": "zurückgegeben", "withdrawn": "zurückgezogen", "lost": "verloren"} %}
+{% set badge = {"available": "warn", "sold": "ok", "returned": "off", "withdrawn": "off", "lost": "error"} %}
 <h1>Übersicht</h1>
 {% include "uebersicht_tabs.html" %}
 <form method="get" class="filter-row">
@@ -16,7 +16,7 @@
 <div class="table-wrap"><table>
   <tr><th class="num">Nr.</th><th>Bezeichnung</th><th>Marke</th><th>Größe</th><th class="num">Preis</th><th>Verkäufer</th><th>Status</th><th></th></tr>
   {% for a in rows %}
-  <tr class="{{ 'off' if a.status.value in ('returned', 'withdrawn') }}">
+  <tr class="{{ 'off' if a.status.value in ('returned', 'withdrawn', 'lost') }}">
     <td class="num">{{ a.number }}</td><td>{{ a.description }}</td><td>{{ a.brand }}</td><td>{{ a.size }}</td>
     <td class="num">{{ a.price_cents|eur }}</td><td>{{ a.seller.display_name }}</td>
     <td><span class="badge {{ badge[a.status.value] }}">{{ labels[a.status.value] }}</span></td>

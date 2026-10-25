@@ -51,6 +51,7 @@
   <h2>Abrechnung</h2>
   <table>
     <tr><td>Verkauft</td><td class="num">{{ r.sold_total_cents|eur }}</td></tr>
+    {% if r.lost_total_cents %}<tr><td>Verloren, vom Verein erstattet</td><td class="num">{{ r.lost_total_cents|eur }}</td></tr>{% endif %}
     <tr><td>Provision</td><td class="num">− {{ r.commission_cents|eur }}</td></tr>
     {% if r.open_offer_fee_cents %}<tr><td>Offene Angebotsgebühr</td><td class="num">− {{ r.open_offer_fee_cents|eur }}</td></tr>{% endif %}
     <tr><th>{{ "Verkäufer zahlt" if r.seller_pays else "Auszahlung" }}</th><th class="num big">{{ (r.payout_cents|abs)|eur }}</th></tr>
@@ -60,9 +61,53 @@
   {% if seller.settled_at %}
   <a role="button" href="/abholung/{{ seller.id }}/rechnung" target="_blank">Rechnung drucken</a>
   {% else %}
+  {% if p.unsold %}
+  <div id="unticked-warning" class="warn" role="alert" hidden>
+    <strong>Nicht alle Artikel sind angehakt:</strong> <span id="unticked-numbers"></span> geht nicht an den Verkäufer zurück.
+    Ist ein Artikel verloren oder gestohlen, bitte zuerst unten als verloren melden – das passiert nicht automatisch.
+    Sonst einfach mit der Abrechnung fortfahren.
+    <button type="button" class="secondary" id="goto-lost">Zum Melden springen</button>
+  </div>
+  {% endif %}
   <button type="submit" class="big-action">Abrechnung abschließen</button>
   {% endif %}
 </form>
+
+{% if p.lost %}
+<h2>Verloren – vom Verein erstattet ({{ p.lost|length }})</h2>
+<p class="hint">Diese Artikel sind nicht auffindbar. Der Verein erstattet den Preis, die Provision wird wie bei einem Verkauf abgezogen.</p>
+{% if seller.settled_at %}
+<div class="table-wrap"><table>
+  <tr><th class="num">Nr.</th><th>Bezeichnung</th><th class="num">Preis</th></tr>
+  {% for a in p.lost %}<tr><td class="num">{{ a.number }}</td><td>{{ a.description }}</td><td class="num">{{ a.price_cents|eur }}</td></tr>{% endfor %}
+</table></div>
+{% else %}
+<form method="post" action="/abholung/{{ seller.id }}/verloren"
+      data-confirm="Die markierten Artikel doch wieder als vorhanden eintragen?">
+  <input type="hidden" name="action" value="found">
+  <div class="table-wrap"><table>
+    <tr><th></th><th class="num">Nr.</th><th>Bezeichnung</th><th class="num">Preis</th></tr>
+    {% for a in p.lost %}<tr><td><input type="checkbox" name="numbers" value="{{ a.number }}" aria-label="Nr. {{ a.number }} doch gefunden"></td><td class="num">{{ a.number }}</td><td>{{ a.description }}</td><td class="num">{{ a.price_cents|eur }}</td></tr>{% endfor %}
+  </table></div>
+  <button type="submit" class="secondary">Doch gefunden – wieder frei</button>
+</form>
+{% endif %}
+{% endif %}
+
+{% if p.unsold and not seller.settled_at %}
+<details class="lost-report">
+  <summary>Artikel nicht auffindbar? (verloren / gestohlen)</summary>
+  <p>Nur wenn ein Artikel beim Basar verloren gegangen ist: Der Verein erstattet dem Verkäufer den Preis (abzüglich Provision wie bei einem Verkauf). Die Auszahlung oben ändert sich danach.</p>
+  <form method="post" action="/abholung/{{ seller.id }}/verloren"
+        data-confirm="Die markierten Artikel als verloren melden? Der Verein erstattet dem Verkäufer den Preis.">
+    <div class="table-wrap"><table>
+      <tr><th></th><th class="num">Nr.</th><th>Bezeichnung</th><th class="num">Preis</th></tr>
+      {% for a in p.unsold %}<tr><td><input type="checkbox" name="numbers" value="{{ a.number }}" aria-label="Nr. {{ a.number }} verloren"></td><td class="num">{{ a.number }}</td><td>{{ a.description }}</td><td class="num">{{ a.price_cents|eur }}</td></tr>{% endfor %}
+    </table></div>
+    <button type="submit" class="secondary">Als verloren melden</button>
+  </form>
+</details>
+{% endif %}
 
 {% if seller.settled_at %}
 <h2>Abrechnung zurücknehmen</h2>

@@ -73,6 +73,7 @@
 <h3>Basar</h3>
 <table>
   <tr><td>Einnahmen des Vereins (Provision und Gebühren)</td><td class="num">{{ r.club_income_cents|eur }}</td></tr>
+  <tr><td>Erstattung verlorener Artikel (trägt der Verein)</td><td class="num">− {{ r.lost_cost_cents|eur }}</td></tr>
   <tr><td>Ausgaben Basar</td><td class="num">− {{ r.bazaar_expenses_cents|eur }}</td></tr>
   <tr><th>Gewinn Basar</th><th class="num">{{ r.bazaar_profit_cents|eur }}</th></tr>
 </table>

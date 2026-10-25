@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Artikel {{ a.number }} bearbeiten{% endblock %}
 {% block content %}
-{% set labels = {"available": "frei", "returned": "zurückgegeben", "withdrawn": "zurückgezogen"} %}
+{% set labels = {"available": "frei", "returned": "zurückgegeben", "withdrawn": "zurückgezogen", "lost": "verloren"} %}
 <p><a href="/uebersicht/artikel">← Übersicht</a></p>
 <h1>Artikel Nr. {{ a.number }}</h1>
 <p class="muted">Verkäufer: {{ a.seller.display_name }}</p>

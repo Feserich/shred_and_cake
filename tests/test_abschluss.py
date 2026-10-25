@@ -184,3 +184,44 @@ def test_full_day_cash_check_balances_to_the_cent(client):
     assert r.cash_difference_cents == 0
     # With everyone settled, the cash the Basar brought in is exactly the club income
     assert r.expected_cash_cents - r.float_cents + 1000 == r.club_income_cents
+
+
+def test_lost_article_is_reimbursed_by_the_club(client):
+    client.post("/kasse/abschluss", data={"cart": ["0"]})
+    r = client.post(
+        "/uebersicht/artikel/1",
+        data={"description": "Ding 1", "price": "20", "status": "lost"},
+        follow_redirects=False,
+    )
+    assert r.status_code in (200, 303)
+    client.post("/abholung/1/abschluss", data={"returned": []})
+    with client.app.state.session_factory() as s:
+        seller = s.get(Seller, 1)
+        # (10,00 sold + 20,00 lost) - 10 % commission - 2 x 2,00 fee
+        assert seller.settled_payout_cents == 2300
+        assert seller.settled_lost_total_cents == 2000
+    _save(client, float_1="20", cash_1="7")
+    r = _build(client)
+    assert r.reconciles
+    assert r.lost_cost_cents == 2000
+    assert r.club_income_cents == 300 + 400
+    assert r.bazaar_profit_cents == 300 + 400 - 2000
+    # Change money 20,00 + sales 10,00 - payout 23,00
+    assert r.expected_cash_cents == 700 and r.cash_difference_cents == 0
+    page = client.get("/abschluss").text
+    assert "Erstattung verlorener Artikel" in page
+
+
+def test_lost_reported_at_pickup_changes_payout_and_can_be_undone(client):
+    client.post("/kasse/abschluss", data={"cart": ["0"]})
+    assert client.post("/abholung/1/verloren", data={"numbers": ["1"]}).status_code == 200
+    page = client.get("/abholung/1").text
+    assert "Verloren – vom Verein erstattet (1)" in page
+    client.post("/abholung/1/verloren", data={"numbers": ["1"], "action": "found"})
+    assert "Verloren – vom Verein erstattet" not in client.get("/abholung/1").text
+    client.post("/abholung/1/verloren", data={"numbers": ["1"]})
+    client.post("/abholung/1/abschluss", data={"returned": []})
+    with client.app.state.session_factory() as s:
+        assert s.get(Seller, 1).settled_payout_cents == 2300
+    # settled: no further changes
+    assert client.post("/abholung/1/verloren", data={"numbers": ["1"]}).status_code == 422

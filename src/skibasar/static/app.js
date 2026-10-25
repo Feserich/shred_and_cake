@@ -88,4 +88,35 @@
     document.getElementById("confirm-no").onclick = () => done(false);
     dialog.showModal();
   });
+
+  /* Abholung: warn when not every unsold article is ticked as returned (maybe lost/stolen).
+     Only informs; settling without reporting anything stays possible. */
+  document.addEventListener("DOMContentLoaded", () => {
+    const warning = document.getElementById("unticked-warning");
+    if (!warning) return;
+    const form = warning.closest("form");
+    const boxes = [...form.querySelectorAll("input[name=returned]")];
+    const baseConfirm = form.dataset.confirm;
+    const update = () => {
+      const open = boxes.filter((b) => !b.checked).map((b) => b.value);
+      warning.hidden = open.length === 0;
+      document.getElementById("unticked-numbers").textContent =
+        "Nr. " + open.join(", ");
+      form.dataset.confirm = open.length
+        ? `${baseConfirm} Achtung: ${open.length} Artikel sind nicht als zurückgegeben angehakt.`
+        : baseConfirm;
+    };
+    form.addEventListener("click", (e) => {
+      if (e.target.matches("input[type=checkbox]")) update();
+    });
+    document.getElementById("goto-lost").addEventListener("click", () => {
+      const details = document.querySelector("details.lost-report");
+      if (!details) return;
+      details.open = true;
+      const open = new Set(boxes.filter((b) => !b.checked).map((b) => b.value));
+      details.querySelectorAll("input[name=numbers]").forEach((b) => { b.checked = open.has(b.value); });
+      details.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    update();
+  });
 })();

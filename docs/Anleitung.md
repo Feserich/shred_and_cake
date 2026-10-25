@@ -40,6 +40,12 @@ Im Ordner `data` **neben** dem Programm: Datenbank, `journal.csv`, `snapshots/` 
 
    Unter dem Ergebnis steht die **Basar-Gesamtabrechnung**: Summen für den ganzen Basar (Verkäufe, Provision, Gebühren, Auszahlungen, getrennt nach Privatverkäufern und Händlern) und eine Liste der noch nicht abgeholten Verkäufer. Die Seite lässt sich als Ganzes drucken.
 
+**Verlorene oder gestohlene Artikel:** Fällt bei der Abholung auf, dass ein Artikel nicht mehr da ist, übernimmt der Verein die Kosten. So geht ihr vor:
+1. In der **Abholung** den Verkäufer öffnen. Ganz unten auf der Seite steht eingeklappt „Artikel nicht auffindbar? (verloren / gestohlen)“. Aufklappen, den fehlenden Artikel ankreuzen und „Als verloren melden“ drücken (mit Rückfrage). Die Auswahl ist bewusst abseits der normalen Abrechnung, damit sie nicht versehentlich passiert. Entfernt ihr bei der Abrechnung den Haken bei einem Artikel, erscheint ein Hinweis mit dem Knopf „Zum Melden springen“. Der Hinweis meldet nichts von allein; wer ihn nicht braucht, schließt die Abrechnung einfach wie gewohnt ab.
+2. Der Artikel steht nun in der Liste „Verloren – vom Verein erstattet“ und die Auszahlung wird neu berechnet: Der Verkäufer bekommt den Artikelpreis wie bei einem Verkauf, die Provision wird wie bei einem Verkauf abgezogen. Der Betrag steht auch auf der Rechnung. Danach wie gewohnt „Abrechnung abschließen“.
+3. Wird der Artikel doch noch gefunden: In der Liste „Verloren“ ankreuzen und „Doch gefunden – wieder frei“ drücken. Das geht nur, solange der Verkäufer nicht abgerechnet ist.
+4. Der Artikel kann an der Kasse nicht mehr verkauft werden. Im **Abschluss** zieht die Seite die Erstattung vom Gewinn des Basars ab („Erstattung verlorener Artikel“); in der Basar-Gesamtabrechnung steht der Betrag als eigene Zeile. Der Kassensturz stimmt weiterhin: Die Erstattung wird mit ausgezahlt, ohne dass dafür Geld eingenommen wurde.
+
 Lehrteam und Basarhelfer werden bei der Annahme mit „Keine Angebotsgebühr“ markiert: Sie zahlen keine Angebotsgebühr, aber trotzdem die Provision auf ihre verkauften Artikel.
 
 Alle Beträge werden intern in Cent gerechnet; die Provision wird einmal pro Verkäufer auf die Verkaufssumme berechnet und kaufmännisch gerundet.

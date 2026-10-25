@@ -44,6 +44,8 @@ button, [role="button"] { font-weight: 600; }
 button.danger { --pico-background-color: var(--err); --pico-border-color: var(--err); --pico-color: #fff; }
 .hint { font-size: .9rem; color: var(--pico-muted-color); margin-top: -.5rem; }
 details.help { margin-top: 2rem; }
+details.lost-report { margin: 1.5rem 0; font-size: 1.15rem; }
+details.lost-report summary { font-size: 1.4rem; font-weight: 700; color: var(--warn); }
 
 /* Status colors (messages and table rows) */
 .error, .ok, .warn { padding: .6rem .9rem; border-radius: var(--pico-border-radius); font-weight: 600; }

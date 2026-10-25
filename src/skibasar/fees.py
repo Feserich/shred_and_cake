@@ -18,6 +18,7 @@ class Settlement:
     commission_cents: int
     open_offer_fee_cents: int
     payout_cents: int  # negative: the seller has to pay the club
+    lost_total_cents: int = 0  # lost articles reimbursed by the club; part of the payout
 
     @property
     def seller_pays(self) -> bool:
@@ -54,15 +55,19 @@ def settle(
     offer_fee_paid_at_entry: bool,
     article_count: int = 0,
     fee_units_paid: int | None = None,
+    lost_prices_cents: list[int] | None = None,
 ) -> Settlement:
     """Compute what a seller receives: sold total minus commission minus open offer fee.
 
     Commission is computed once on the seller's sold total, never per article.
     The offer fee is charged once, or per offered article (``article_count``) if the rules say so.
+    Articles lost at the Basar (``lost_prices_cents``) are reimbursed at their price like sales,
+    including commission; the club bears that cost, it is not part of ``sold_total_cents``.
     Fee-exempt sellers (teaching team, helpers) pay no offer fee but still pay the commission.
     """
     sold_total = sum(sold_prices_cents)
-    comm = commission(sold_total, rules.commission_bp)
+    lost_total = sum(lost_prices_cents or [])
+    comm = commission(sold_total + lost_total, rules.commission_bp)
     units = article_count if rules.per_article else 1
     paid = 0
     if offer_fee_paid_at_entry:
@@ -72,5 +77,6 @@ def settle(
         sold_total_cents=sold_total,
         commission_cents=comm,
         open_offer_fee_cents=open_fee,
-        payout_cents=sold_total - comm - open_fee,
+        payout_cents=sold_total + lost_total - comm - open_fee,
+        lost_total_cents=lost_total,
     )

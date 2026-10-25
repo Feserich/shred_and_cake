@@ -15,12 +15,13 @@
   {% for a in seller.articles %}
   <tr>
     <td class="num">{{ a.number }}</td><td>{{ a.description }}</td><td class="num">{{ a.price_cents|eur }}</td>
-    <td>{{ {"sold": "verkauft", "returned": "zurückgegeben", "withdrawn": "zurückgezogen", "available": "nicht verkauft"}[a.status.value] }}</td>
+    <td>{{ {"sold": "verkauft", "returned": "zurückgegeben", "withdrawn": "zurückgezogen", "lost": "verloren", "available": "nicht verkauft"}[a.status.value] }}</td>
   </tr>
   {% endfor %}
 </table>
 <table>
   <tr><td>Verkauft ({{ p.sold|length }} Artikel)</td><td class="num">{{ r.sold_total_cents|eur }}</td></tr>
+  {% if r.lost_total_cents %}<tr><td>Verloren, vom Verein erstattet ({{ p.lost|length }} Artikel)</td><td class="num">{{ r.lost_total_cents|eur }}</td></tr>{% endif %}
   <tr><td>Provision</td><td class="num">− {{ r.commission_cents|eur }}</td></tr>
   {% if r.open_offer_fee_cents %}<tr><td>Angebotsgebühr</td><td class="num">− {{ r.open_offer_fee_cents|eur }}</td></tr>{% endif %}
   <tr><th>{{ "Verkäufer zahlt" if r.seller_pays else "Auszahlung" }}</th><th class="num">{{ (r.payout_cents|abs)|eur }}</th></tr>

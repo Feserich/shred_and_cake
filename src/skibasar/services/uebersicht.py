@@ -21,7 +21,12 @@ LIMIT = 500
 _SELLER_TEXT = ("name", "first_name", "phone", "email", "address", "notes")
 _ARTICLE_TEXT = ("description", "brand", "size", "color")
 # "sold" is only reachable through the checkout, never by hand
-_EDITABLE_STATUS = (ArticleStatus.available, ArticleStatus.returned, ArticleStatus.withdrawn)
+_EDITABLE_STATUS = (
+    ArticleStatus.available,
+    ArticleStatus.returned,
+    ArticleStatus.withdrawn,
+    ArticleStatus.lost,
+)
 FEE_PAID_AND_EXEMPT_MESSAGE = (
     "„Keine Angebotsgebühr“ und „Gebühr bezahlt“ schließen sich aus – wurde schon bezahlt, "
     "bitte das Geld zurückgeben und „bezahlt“ entfernen"

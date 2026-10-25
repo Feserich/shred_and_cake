@@ -14,6 +14,7 @@ class GroupTotals:
     sellers: int = 0
     settled: int = 0
     sold_cents: int = 0  # of settled sellers
+    lost_cents: int = 0  # of settled sellers: lost articles reimbursed by the club
     commission_cents: int = 0
     deducted_fee_cents: int = 0
     payout_cents: int = 0  # negative: sellers who paid the club
@@ -36,11 +37,17 @@ class Report:
     groups: dict[SellerType, GroupTotals]
     open_sellers: list[OpenSeller]
     open_sold_cents: int  # sold, but the seller has not been settled yet
+    open_lost_cents: int  # lost articles of sellers not settled yet
     sale_items_cents: int  # Σ sale items of valid sales; must equal sales_total_cents
 
     @property
     def settled_sold_cents(self) -> int:
         return sum(g.sold_cents for g in self.groups.values())
+
+    @property
+    def lost_cents(self) -> int:
+        """Cost of lost articles the club reimburses to settled sellers."""
+        return sum(g.lost_cents for g in self.groups.values())
 
     @property
     def commission_cents(self) -> int:
@@ -64,9 +71,9 @@ class Report:
 
     @property
     def reconciles(self) -> bool:
-        """Σ sales == Σ payouts + Σ commission + Σ deducted fees (settled + still open)."""
+        """Σ sales + Σ reimbursed lost == Σ payouts + Σ commission + Σ deducted fees."""
         settled_ok = (
-            self.settled_sold_cents
+            self.settled_sold_cents + self.lost_cents
             == self.payout_cents + self.commission_cents + self.deducted_fee_cents
         )
         all_sold = self.settled_sold_cents + self.open_sold_cents
@@ -95,6 +102,7 @@ def build(s: Session) -> Report:
     groups = {t: GroupTotals() for t in SellerType}
     open_sellers: list[OpenSeller] = []
     open_sold = 0
+    open_lost = 0
     for seller in s.scalars(select(Seller).order_by(Seller.name, Seller.id)):
         g = groups[seller.type]
         g.sellers += 1
@@ -104,12 +112,22 @@ def build(s: Session) -> Report:
         if seller.settled_at is not None:
             g.settled += 1
             g.sold_cents += r.sold_total_cents
+            g.lost_cents += r.lost_total_cents
             g.commission_cents += r.commission_cents
             g.deducted_fee_cents += r.open_offer_fee_cents
             g.payout_cents += r.payout_cents
         else:
             open_sold += r.sold_total_cents
+            open_lost += r.lost_total_cents
             open_sellers.append(OpenSeller(seller, r.sold_total_cents, r.payout_cents))
     return Report(
-        sales_count, cancelled, sales_total, by_status, groups, open_sellers, open_sold, items_total
+        sales_count,
+        cancelled,
+        sales_total,
+        by_status,
+        groups,
+        open_sellers,
+        open_sold,
+        open_lost,
+        items_total,
     )

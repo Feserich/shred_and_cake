@@ -78,6 +78,21 @@ async def finish(request: Request, seller_id: int, s: Session = Depends(get_sess
     return RedirectResponse(f"/abholung/{seller_id}/rechnung?neu=1", status_code=303)
 
 
+@router.post("/{seller_id}/verloren", response_class=HTMLResponse)
+async def lost(request: Request, seller_id: int, s: Session = Depends(get_session)):
+    seller = _get_seller(s, seller_id)
+    data = await request.form()
+    numbers = [int(v) for v in data.getlist("numbers") if str(v).isdigit()]
+    try:
+        abholung.set_lost(
+            s, seller, numbers, lost=data.get("action") != "found", client=_client(request)
+        )
+    except AbholungError as e:
+        s.rollback()
+        return _detail(request, s, seller, error=str(e), status=422)
+    return RedirectResponse(f"/abholung/{seller_id}", status_code=303)
+
+
 @router.post("/{seller_id}/zuruecknehmen", response_class=HTMLResponse)
 async def undo(request: Request, seller_id: int, s: Session = Depends(get_session)):
     seller = _get_seller(s, seller_id)

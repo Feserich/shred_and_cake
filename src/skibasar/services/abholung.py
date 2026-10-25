@@ -23,6 +23,7 @@ class Preview:
     sold: list[Article]
     unsold: list[Article]  # still available: ticked as returned by default
     other: list[Article]  # already returned or withdrawn
+    lost: list[Article]  # lost at the Basar, reimbursed by the club
     settlement: Settlement
 
 
@@ -60,6 +61,7 @@ def preview(s: Session, seller: Seller) -> Preview:
             commission_cents=seller.settled_commission_cents,
             open_offer_fee_cents=seller.settled_open_fee_cents,
             payout_cents=seller.settled_payout_cents,
+            lost_total_cents=seller.settled_lost_total_cents or 0,
         )
     else:
         settlement = settle(
@@ -69,12 +71,14 @@ def preview(s: Session, seller: Seller) -> Preview:
             offer_fee_paid_at_entry=seller.offer_fee_paid_at_entry,
             article_count=len(seller.articles),
             fee_units_paid=seller.offer_fee_paid_units,
+            lost_prices_cents=[a.price_cents for a in by_status[ArticleStatus.lost]],
         )
     return Preview(
         seller,
         sold,
         by_status[ArticleStatus.available],
         by_status[ArticleStatus.returned] + by_status[ArticleStatus.withdrawn],
+        by_status[ArticleStatus.lost],
         settlement,
     )
 
@@ -132,6 +136,7 @@ def finish(
     seller.settled_at = datetime.now()
     result = before.settlement
     seller.settled_sold_total_cents = result.sold_total_cents
+    seller.settled_lost_total_cents = result.lost_total_cents
     seller.settled_commission_cents = result.commission_cents
     seller.settled_open_fee_cents = result.open_offer_fee_cents
     seller.settled_payout_cents = result.payout_cents
@@ -143,6 +148,7 @@ def finish(
         None,
         {
             "sold_total_cents": result.sold_total_cents,
+            "lost_total_cents": result.lost_total_cents,
             "commission_cents": result.commission_cents,
             "open_offer_fee_cents": result.open_offer_fee_cents,
             "payout_cents": result.payout_cents,
@@ -153,6 +159,38 @@ def finish(
     s.commit()
     s.expire_all()  # the bulk UPDATE bypassed the ORM, so reload article statuses
     return preview(s, seller)
+
+
+def set_lost(
+    s: Session, seller: Seller, numbers: list[int], *, lost: bool, client: str = ""
+) -> int:
+    """Report unsold articles as lost (the club reimburses them) or found again.
+
+    Only before settlement, and only articles that are still ``available`` (or ``lost`` when
+    taking it back). Returns how many articles changed.
+    """
+    s.rollback()
+    s.execute(text("BEGIN IMMEDIATE"))
+    s.refresh(seller)
+    if seller.settled_at is not None:
+        s.rollback()
+        raise AbholungError("Dieser Verkäufer ist schon abgerechnet")
+    old, new = (
+        (ArticleStatus.available, ArticleStatus.lost)
+        if lost
+        else (ArticleStatus.lost, ArticleStatus.available)
+    )
+    changed = [a for a in seller.articles if a.number in set(numbers) and a.status == old]
+    if not changed:
+        s.rollback()
+        raise AbholungError("Bitte mindestens einen Artikel auswählen")
+    for a in changed:
+        a.status = new
+        audit.log(
+            s, "article", a.id, "update", {"status": old.value}, {"status": new.value}, client
+        )
+    s.commit()
+    return len(changed)
 
 
 def undo_settlement(s: Session, seller: Seller, *, admin_pin_given: str, client: str = "") -> None:
@@ -196,12 +234,14 @@ def undo_settlement(s: Session, seller: Seller, *, admin_pin_given: str, client:
     before = {
         "settled_at": seller.settled_at.isoformat(timespec="seconds"),
         "sold_total_cents": seller.settled_sold_total_cents,
+        "lost_total_cents": seller.settled_lost_total_cents,
         "commission_cents": seller.settled_commission_cents,
         "open_offer_fee_cents": seller.settled_open_fee_cents,
         "payout_cents": seller.settled_payout_cents,
     }
     seller.settled_at = None
     seller.settled_sold_total_cents = None
+    seller.settled_lost_total_cents = None
     seller.settled_commission_cents = None
     seller.settled_open_fee_cents = None
     seller.settled_payout_cents = None

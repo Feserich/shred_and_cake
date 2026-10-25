@@ -2,7 +2,7 @@
 {% set names = {"private": "Privatverkäufer", "shop": "Händler"} %}
 <h2 id="gesamtabrechnung">Basar-Gesamtabrechnung</h2>
 <p class="{{ 'ok' if r.reconciles else 'error' }}" role="status">
-  {% if r.reconciles %}Die Zahlen stimmen: Verkäufe = Auszahlungen + Provision + abgezogene Gebühren (+ noch nicht abgerechnet).{% else %}Achtung: Die Zahlen gehen nicht auf – bitte prüfen!{% endif %}
+  {% if r.reconciles %}Die Zahlen stimmen: Verkäufe = Auszahlungen + Provision + abgezogene Gebühren (+ vom Verein erstattete verlorene Artikel, + noch nicht abgerechnet).{% else %}Achtung: Die Zahlen gehen nicht auf – bitte prüfen!{% endif %}
 </p>
 
 <h3>Verkäufe</h3>
@@ -19,6 +19,7 @@
   <tr><th></th>{% for t, g in r.groups.items() %}<th class="num">{{ names[t.value] }}</th>{% endfor %}<th class="num">Gesamt</th></tr>
   <tr><td>Verkäufer (abgerechnet / alle)</td>{% for g in r.groups.values() %}<td class="num">{{ g.settled }} / {{ g.sellers }}</td>{% endfor %}<td class="num">{{ r.groups.values()|sum(attribute="settled") }} / {{ r.groups.values()|sum(attribute="sellers") }}</td></tr>
   <tr><td>Verkauft</td>{% for g in r.groups.values() %}<td class="num">{{ g.sold_cents|eur }}</td>{% endfor %}<td class="num">{{ r.settled_sold_cents|eur }}</td></tr>
+  <tr><td>Verloren (vom Verein erstattet)</td>{% for g in r.groups.values() %}<td class="num">{{ g.lost_cents|eur }}</td>{% endfor %}<td class="num">{{ r.lost_cents|eur }}</td></tr>
   <tr><td>Provision</td>{% for g in r.groups.values() %}<td class="num">{{ g.commission_cents|eur }}</td>{% endfor %}<td class="num">{{ r.commission_cents|eur }}</td></tr>
   <tr><td>Bei Abrechnung abgezogene Gebühren</td>{% for g in r.groups.values() %}<td class="num">{{ g.deducted_fee_cents|eur }}</td>{% endfor %}<td class="num">{{ r.deducted_fee_cents|eur }}</td></tr>
   <tr><th>Auszahlungen</th>{% for g in r.groups.values() %}<th class="num">{{ g.payout_cents|eur }}</th>{% endfor %}<th class="num">{{ r.payout_cents|eur }}</th></tr>
@@ -30,6 +31,8 @@
   <tr><td>Gebühren bei der Annahme bezahlt</td><td class="num">{{ r.fee_at_entry_cents|eur }}</td></tr>
   <tr><td>Gebühren bei der Abrechnung abgezogen</td><td class="num">{{ r.deducted_fee_cents|eur }}</td></tr>
   <tr><th>Gesamt</th><th class="num">{{ r.club_income_cents|eur }}</th></tr>
+  <tr><td>Erstattung verlorener Artikel (Kosten des Vereins)</td><td class="num">− {{ r.lost_cents|eur }}</td></tr>
+  <tr><th>Einnahmen nach Erstattung</th><th class="num">{{ (r.club_income_cents - r.lost_cents)|eur }}</th></tr>
 </table>
 
 <h3>Artikel</h3>
@@ -38,6 +41,7 @@
   <tr><td>Nicht verkauft (frei)</td><td class="num">{{ r.articles_by_status.available }}</td></tr>
   <tr><td>Zurückgegeben</td><td class="num">{{ r.articles_by_status.returned }}</td></tr>
   <tr><td>Zurückgezogen</td><td class="num">{{ r.articles_by_status.withdrawn }}</td></tr>
+  <tr><td>Verloren</td><td class="num">{{ r.articles_by_status.lost }}</td></tr>
 </table>
 
 <h3>Noch nicht abgeholt ({{ r.open_sellers|length }})</h3>

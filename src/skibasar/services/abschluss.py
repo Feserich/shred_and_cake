@@ -30,6 +30,7 @@ class Result:
     expenses: list[Expense]
     open_sellers: int
     club_income_cents: int  # commission + fees of the Basar
+    lost_cost_cents: int  # lost articles reimbursed to sellers
     bazaar_expenses_cents: int
     cake_expenses_cents: int
     cake_till_expenses_cents: int  # cake expenses paid in cash out of the cake till
@@ -39,7 +40,7 @@ class Result:
 
     @property
     def bazaar_profit_cents(self) -> int:
-        return self.club_income_cents - self.bazaar_expenses_cents
+        return self.club_income_cents - self.lost_cost_cents - self.bazaar_expenses_cents
 
     @property
     def cake_income_cents(self) -> int | None:
@@ -171,6 +172,7 @@ def build(s: Session) -> Result:
         expenses=expenses,
         open_sellers=len(report.open_sellers),
         club_income_cents=report.club_income_cents,
+        lost_cost_cents=report.lost_cents,
         bazaar_expenses_cents=total(ExpenseCategory.bazaar),
         cake_expenses_cents=total(ExpenseCategory.cake),
         cake_till_expenses_cents=from_till(ExpenseCategory.cake),
