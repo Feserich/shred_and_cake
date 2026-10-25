@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from ..models import Event, Seller
 from ..services import abholung
 from ..services.abholung import AbholungError
-from ..services.annahme import fee_status
+from ..services.annahme import ambiguous_seller_ids, fee_status
 from .setup import _client, get_session, templates
 
 router = APIRouter(prefix="/abholung")
@@ -28,13 +28,23 @@ def _detail(request: Request, s: Session, seller: Seller, *, error=None, status=
         if seller.settled_at
         else fee_status(event, seller)
     )
-    ctx = {"p": p, "fee_status": status_text, "error": error, "undone": undone}
+    ctx = {
+        "p": p,
+        "fee_status": status_text,
+        "error": error,
+        "undone": undone,
+        "ambiguous": seller.id in ambiguous_seller_ids(s),
+    }
     return templates.TemplateResponse(request, "abholung_detail.html", ctx, status_code=status)
 
 
 @router.get("", response_class=HTMLResponse)
 def search(request: Request, q: str = "", s: Session = Depends(get_session)):
-    ctx = {"sellers": abholung.search_sellers(s, q), "q": q}
+    ctx = {
+        "sellers": abholung.search_sellers(s, q),
+        "q": q,
+        "ambiguous": ambiguous_seller_ids(s),
+    }
     return templates.TemplateResponse(request, "abholung.html", ctx)
 
 

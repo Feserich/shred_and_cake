@@ -32,6 +32,23 @@ def search_private_sellers(s: Session, query: str = "") -> list[Seller]:
     return list(s.scalars(q))
 
 
+def ambiguous_seller_ids(s: Session) -> set[int]:
+    """Sellers without address who share their full name with another seller.
+
+    Flagged so the volunteers can tell them apart at the pickup.
+    """
+    groups: dict[str, list[Seller]] = {}
+    for seller in s.scalars(select(Seller)):
+        groups.setdefault(" ".join(seller.display_name.lower().split()), []).append(seller)
+    return {
+        seller.id
+        for sellers in groups.values()
+        if len(sellers) > 1
+        for seller in sellers
+        if not seller.address.strip()
+    }
+
+
 def save_private_seller(
     s: Session,
     seller: Seller | None,

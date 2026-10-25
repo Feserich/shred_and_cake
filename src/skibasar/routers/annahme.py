@@ -64,6 +64,7 @@ def entry_home(request: Request, q: str = "", s: Session = Depends(get_session))
         {
             "sellers": annahme.search_private_sellers(s, q),
             "q": q,
+            "ambiguous": annahme.ambiguous_seller_ids(s),
             "f": _seller_form(),
             "error": None,
         },
@@ -73,7 +74,13 @@ def entry_home(request: Request, q: str = "", s: Session = Depends(get_session))
 @router.post("/verkaeufer", response_class=HTMLResponse)
 async def seller_create(request: Request, s: Session = Depends(get_session)):
     def render(form, error, status):
-        ctx = {"sellers": annahme.search_private_sellers(s), "q": "", "f": form, "error": error}
+        ctx = {
+            "sellers": annahme.search_private_sellers(s),
+            "q": "",
+            "ambiguous": annahme.ambiguous_seller_ids(s),
+            "f": form,
+            "error": error,
+        }
         return templates.TemplateResponse(request, "annahme.html", ctx, status_code=status)
 
     return _save_seller(request, s, None, await _seller_values(request), render)
@@ -83,6 +90,7 @@ def _detail_ctx(s: Session, seller: Seller, **extra) -> dict:
     event = s.get(Event, 1)
     return {
         "seller": seller,
+        "ambiguous": seller.id in annahme.ambiguous_seller_ids(s),
         "next_number": next_private_number(s),
         "total": sum(a.price_cents for a in seller.articles),
         "fee_status": annahme.fee_status(event, seller),

@@ -5,6 +5,7 @@
 {% block content %}
 <p><a href="/abholung">← Abholung</a></p>
 <h1>{{ seller.display_name }}</h1>
+{% if ambiguous %}<p class="warn" role="alert">Es gibt mehrere Verkäufer mit diesem Namen, bei diesem fehlt die Adresse. Bitte vor der Auszahlung prüfen, dass es der richtige Verkäufer ist.</p>{% endif %}
 {% if error %}<p class="error big" role="alert">{{ error }}</p>{% endif %}
 {% if undone %}<div data-toast="ok">Abrechnung zurückgenommen.</div>{% endif %}
 {% if seller.settled_at %}

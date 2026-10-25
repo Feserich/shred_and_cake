@@ -247,3 +247,21 @@ def test_paid_ticked_before_any_article_does_not_cover_later_ones(client):
         _article(client, url, n)
     assert _fee_at_entry(client) == 0
     assert "Gebühr 2,00 € kassiert" in client.get(url).text
+
+
+def test_same_name_without_address_is_flagged(client):
+    first = _seller(client)
+    assert "Name doppelt" not in client.get("/annahme").text
+    assert "mehrere Verkäufer mit diesem Namen" not in client.get(first).text
+    second = _seller(client)
+    assert "Name doppelt" in client.get("/annahme").text
+    assert "Name doppelt" in client.get("/abholung").text
+    assert "mehrere Verkäufer mit diesem Namen" in client.get(second).text
+    client.post(first, data={"name": "Huber", "first_name": "Anna", "address": "Hauptstr. 1"})
+    page = client.get(first).text
+    assert "mehrere Verkäufer mit diesem Namen" not in page
+    assert "mehrere Verkäufer mit diesem Namen" in client.get(second).text
+    assert (
+        "mehrere Verkäufer mit diesem Namen"
+        in client.get(second.replace("/annahme/", "/abholung/")).text
+    )

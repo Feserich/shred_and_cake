@@ -3,6 +3,7 @@
 {% block content %}
 <p><a href="/annahme">← Annahme</a></p>
 <h1>{{ seller.display_name }}</h1>
+{% if ambiguous %}<p class="warn" role="alert">Es gibt mehrere Verkäufer mit diesem Namen, bei diesem fehlt die Adresse. Bitte Adresse ergänzen, damit er bei der Abholung eindeutig erkannt wird.</p>{% endif %}
 <p class="muted">{{ fee_status }}</p>
 {% if fee_saved %}<div data-toast="ok">Gebühr als bezahlt vermerkt.</div>{% endif %}
 {% if seller.settled_at %}
