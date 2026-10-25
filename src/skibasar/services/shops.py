@@ -15,6 +15,9 @@ from .uebersicht import FEE_PAID_AND_EXEMPT_MESSAGE
 SETTLED_IMPORT_MESSAGE = (
     "Dieser Händler ist bereits abgerechnet – ein Import ist nicht mehr möglich."
 )
+SETTLED_ADD_MESSAGE = (
+    "Dieser Händler ist bereits abgerechnet – es können keine Artikel mehr hinzugefügt werden."
+)
 
 
 def update_event(s: Session, values: dict, client: str = "") -> Event:
@@ -86,6 +89,56 @@ def save_shop(
         audit.log(s, "seller", shop.id, "update", before, values, client)
     s.commit()
     return shop
+
+
+def add_article(
+    s: Session,
+    shop: Seller,
+    *,
+    number: int,
+    description: str,
+    price_cents: int,
+    brand: str = "",
+    size: str = "",
+    color: str = "",
+    client: str = "",
+) -> Article:
+    """Manually add one article with a chosen number inside the shop's range (late deliveries)."""
+    if shop.settled_at is not None:
+        raise RangeError(SETTLED_ADD_MESSAGE)
+    if not description.strip():
+        raise RangeError("Artikelname fehlt")
+    if price_cents <= 0:
+        raise RangeError("Der Preis muss größer als 0 sein")
+    if not (shop.number_range_start <= number <= shop.number_range_end):
+        raise RangeError(
+            f"Nummer {number} liegt außerhalb des Bereichs "
+            f"{shop.number_range_start}–{shop.number_range_end}"
+        )
+    if s.scalar(select(Article.id).where(Article.number == number)) is not None:
+        raise RangeError(f"Nummer {number} ist bereits vergeben")
+    article = Article(
+        number=number,
+        seller_id=shop.id,
+        description=description.strip(),
+        brand=brand.strip(),
+        size=size.strip(),
+        color=color.strip(),
+        price_cents=price_cents,
+    )
+    s.add(article)
+    s.flush()
+    audit.log(
+        s,
+        "article",
+        article.id,
+        "create",
+        None,
+        {"number": number, "seller_id": shop.id, "price_cents": price_cents},
+        client,
+    )
+    s.commit()
+    return article
 
 
 @dataclass

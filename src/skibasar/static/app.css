@@ -55,6 +55,14 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 tr.bad td { background: var(--err-bg); }
 tr.warn td { background: var(--warn-bg); }
 tr.off td { color: var(--off); }
+tr.row-new td, .badge.row-new { background: color-mix(in srgb, var(--ok) 22%, transparent); }
+tr.row-changed td, .badge.row-changed { background: color-mix(in srgb, var(--warn) 25%, transparent); }
+tr.row-removed td, .badge.row-removed { background: color-mix(in srgb, var(--err) 25%, transparent); }
+.badge.row-new { color: var(--ok); }
+.badge.row-changed { color: var(--warn); }
+.badge.row-removed { color: var(--err); }
+tr.row-removed td { text-decoration: line-through; }
+.badge.row-same { background: var(--pico-card-background-color); color: var(--pico-muted-color); border: 1px solid var(--pico-muted-border-color); }
 .badge { display: inline-block; padding: .1rem .6rem; border-radius: 999px; font-size: .85rem; font-weight: 600; }
 .badge.ok { background: var(--ok-bg); color: var(--ok); padding: .1rem .6rem; }
 .badge.warn { background: var(--warn-bg); color: var(--warn); padding: .1rem .6rem; }
@@ -104,6 +112,8 @@ dialog#confirm-dialog footer button { width: auto; margin: 0; }
 .total strong { font-size: 2.5rem; font-variant-numeric: tabular-nums; }
 .change strong { font-size: 2rem; }
 button.big-action, a.big-action { font-size: 1.3rem; }
+details > summary.add-toggle { font-size: 1.3rem; display: block; text-align: center; margin: 1rem 0; }
+details[open] > summary.add-toggle { --pico-background-color: var(--pico-secondary-background); --pico-border-color: var(--pico-secondary-border); }
 
 /* Übersicht */
 .tabs { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }

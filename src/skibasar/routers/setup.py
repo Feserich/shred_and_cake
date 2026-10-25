@@ -246,10 +246,15 @@ def _detail_ctx(shop: Seller, message: str | None = None) -> dict:
 
 @router.get("/haendler/{shop_id}", response_class=HTMLResponse)
 def shop_detail(
-    request: Request, shop_id: int, imported: int = 0, s: Session = Depends(get_session)
+    request: Request,
+    shop_id: int,
+    imported: int = 0,
+    added: int = 0,
+    s: Session = Depends(get_session),
 ):
     shop = _get_shop(s, shop_id)
-    ctx = _detail_ctx(shop, "Import übernommen." if imported else None)
+    message = "Import übernommen." if imported else "Artikel hinzugefügt." if added else None
+    ctx = _detail_ctx(shop, message)
     return templates.TemplateResponse(
         request, "shop_detail.html", {**ctx, "f": _shop_form(shop), "error": None}
     )
@@ -261,6 +266,62 @@ async def shop_update(request: Request, shop_id: int, s: Session = Depends(get_s
     return _save_shop(
         request, s, shop, await _form_values(request), "shop_detail.html", _detail_ctx(shop)
     )
+
+
+@router.post("/haendler/{shop_id}/artikel", response_class=HTMLResponse)
+def shop_add_article(
+    request: Request,
+    shop_id: int,
+    number: str = Form(""),
+    description: str = Form(""),
+    brand: str = Form(""),
+    size: str = Form(""),
+    color: str = Form(""),
+    price: str = Form(""),
+    s: Session = Depends(get_session),
+):
+    shop = _get_shop(s, shop_id)
+    try:
+        if not number.strip().isdigit():
+            raise RangeError("Artikelnummer muss eine Zahl sein")
+        try:
+            price_cents = parse_eur(price)
+        except MoneyError as e:
+            raise RangeError(str(e)) from e
+        shops.add_article(
+            s,
+            shop,
+            number=int(number),
+            description=description,
+            price_cents=price_cents,
+            brand=brand,
+            size=size,
+            color=color,
+            client=_client(request),
+        )
+    except RangeError as e:
+        s.rollback()
+        form = {
+            "number": number,
+            "description": description,
+            "brand": brand,
+            "size": size,
+            "color": color,
+            "price": price,
+        }
+        return templates.TemplateResponse(
+            request,
+            "shop_detail.html",
+            {
+                **_detail_ctx(shop),
+                "f": _shop_form(shop),
+                "error": None,
+                "article_error": str(e),
+                "af": form,
+            },
+            status_code=422,
+        )
+    return RedirectResponse(f"/haendler/{shop_id}?added=1", status_code=303)
 
 
 @router.post("/haendler/{shop_id}/import", response_class=HTMLResponse)

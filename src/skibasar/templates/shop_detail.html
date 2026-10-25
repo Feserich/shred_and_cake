@@ -32,9 +32,26 @@
   <tr><th class="num">Nr.</th><th>Artikel</th><th>Marke</th><th>Größe</th><th class="num">Preis</th><th>Status</th></tr>
   {% for a in shop.articles %}
   <tr><td class="num">{{ a.number }}</td><td>{{ a.description }}</td><td>{{ a.brand }}</td><td>{{ a.size }}</td>
-      <td class="num">{{ a.price_cents|eur }}</td><td>{{ a.status.value }}</td></tr>
+      <td class="num">{{ a.price_cents|eur }}</td><td>{{ {"sold": "verkauft", "returned": "zurückgegeben", "withdrawn": "zurückgezogen", "available": "nicht verkauft"}[a.status.value] }}</td></tr>
   {% endfor %}
 </table>
+{% endif %}
+{% if not shop.settled_at %}
+{% set af = af or {} %}
+<details{% if article_error %} open{% endif %}>
+  <summary role="button" class="add-toggle">+ Artikel manuell hinzufügen</summary>
+  <p>Nummer innerhalb {{ shop.number_range_start }}–{{ shop.number_range_end }}, z. B. für Nachlieferungen am Morgen.</p>
+  {% if article_error %}<p class="warn">{{ article_error }}</p>{% endif %}
+  <form method="post" action="/haendler/{{ shop.id }}/artikel">
+    <label>Nr. <input name="number" inputmode="numeric" required value="{{ af.number }}"></label>
+    <label>Artikel <input name="description" required value="{{ af.description }}"></label>
+    <label>Marke <input name="brand" value="{{ af.brand }}"></label>
+    <label>Größe <input name="size" value="{{ af.size }}"></label>
+    <label>Farbe <input name="color" value="{{ af.color }}"></label>
+    <label>Preis <input name="price" inputmode="decimal" required value="{{ af.price }}"></label>
+    <button type="submit">Hinzufügen</button>
+  </form>
+</details>
 {% endif %}
 <h2>Stammdaten</h2>
 {% include "shop_form.html" %}

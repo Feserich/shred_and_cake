@@ -150,3 +150,40 @@ def test_new_event_starts_private_numbers_at_1(tmp_path, monkeypatch):
     c.post("/einstellungen", data={"name": "Basar"})
     with c.app.state.session_factory() as s:
         assert s.get(Event, 1).private_number_start == 1
+
+
+def test_manual_shop_article(client):
+    detail = client.post(
+        "/haendler",
+        data={"name": "Nachlieferung", "range_start": "1000", "range_end": "1999"},
+        follow_redirects=False,
+    ).headers["location"]
+    data = {"number": "1500", "description": "Helm", "price": "49,90"}
+    r = client.post(f"{detail}/artikel", data=data, follow_redirects=True)
+    assert "Artikel hinzugefügt" in r.text and "Helm" in r.text and "49,90 €" in r.text
+    r = client.post(f"{detail}/artikel", data=data)
+    assert r.status_code == 422 and "bereits vergeben" in r.text
+    r = client.post(f"{detail}/artikel", data={**data, "number": "2000"})
+    assert r.status_code == 422 and "außerhalb" in r.text
+
+
+def test_second_import_marks_changes_and_confirms_removal(client):
+    detail = client.post(
+        "/haendler",
+        data={"name": "Zweit", "range_start": "1", "range_end": "99999"},
+        follow_redirects=False,
+    ).headers["location"]
+    r = client.post(f"{detail}/import", files={"file": ("k.csv", FIXTURE.read_bytes())})
+    assert "data-confirm" not in r.text and 'class="row-new"' in r.text
+    token = r.text.split(f"{detail}/import/")[1].split('"')[0]
+    client.post(f"{detail}/import/{token}")
+
+    r = client.post(f"{detail}/import", files={"file": ("k.csv", FIXTURE.read_bytes())})
+    assert 'class="row-same"' in r.text and "row-new" not in r.text.split("<table>")[1]
+    assert "data-confirm" not in r.text
+
+    raw = FIXTURE.read_bytes().split(b"\n")
+    shorter = b"\n".join([raw[0], *raw[2:-3]])  # drop article 1000 and the sum row
+    r = client.post(f"{detail}/import", files={"file": ("k.csv", shorter)})
+    assert 'class="row-removed"' in r.text
+    assert 'data-confirm="1 vorhandener Artikel wird gelöscht' in r.text
