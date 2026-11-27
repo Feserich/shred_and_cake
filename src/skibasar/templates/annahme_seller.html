@@ -35,6 +35,15 @@
 {% endif %}
 {% endif %}
 <h2>Artikel ({{ seller.articles|length }}, Summe {{ total|eur }})</h2>
+{% if can_mail and not seller.settled_at %}
+<label class="check mail-option">
+  <input type="checkbox" name="send_mail" value="1" {% if seller.annahme_mail %}checked{% endif %}
+         hx-post="/annahme/{{ seller.id }}/email-option" hx-trigger="change" hx-swap="none">
+  Artikelliste per E-Mail an {{ seller.email }} senden
+</label>
+<p class="hint">Die E-Mail geht raus, sobald diese Seite verlassen wird (nächster Verkäufer oder zurück). Kommen später weitere Artikel dazu, bekommt der Verkäufer die aktuelle Liste noch einmal.</p>
+{% endif %}
+{% include "_mail_box.html" %}
 {% if seller.articles %}
 <p><a href="/annahme/{{ seller.id }}/liste" target="_blank">Verkäuferliste drucken</a></p>
 <div class="table-wrap"><table>
@@ -62,6 +71,22 @@
 <h2>Stammdaten</h2>
 {% if seller_error %}<p class="error">{{ seller_error }}</p>{% endif %}
 {% with action="/annahme/" ~ seller.id, button="Speichern" %}{% include "annahme_seller_form.html" %}{% endwith %}
+{% endblock %}
+{% block scripts %}
+{% if can_mail and not seller.settled_at %}
+<script>
+  /* Leaving this seller (back, next seller, closing the tab) mails the article list.
+     Forms on this page come back to it, so submitting one is not leaving. */
+  (() => {
+    let staying = false;
+    addEventListener("submit", (e) => { if (!e.defaultPrevented) staying = true; });
+    addEventListener("pageshow", () => { staying = false; });
+    addEventListener("pagehide", () => {
+      if (!staying) navigator.sendBeacon("/annahme/{{ seller.id }}/verlassen");
+    });
+  })();
+</script>
+{% endif %}
 {% endblock %}
 {% block help %}
 <details class="help"><summary>Hilfe</summary>

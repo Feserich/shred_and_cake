@@ -37,6 +37,11 @@ The end-user manual (German) is in [docs/Anleitung.md](docs/Anleitung.md).
   on paper.
 - Phones in the local WiFi (`--lan`) get access via QR code and event PIN; the laptop needs no PIN.
   An optional admin PIN guards edits of already settled sellers.
+- Optional e-mail confirmations: sellers with an e-mail address can get their article list
+  (Annahme, sent when the volunteer leaves the seller's page) and settlement (Abholung, sent on
+  "Abrechnung abschließen") by mail instead of a printout; a checkbox, ticked by default, decides. The SMTP account is set up
+  under Einstellungen; mails are queued in the database and sent by a background thread as soon as
+  the internet is available, also after a restart.
 - Pre-built executables for Windows and Linux (PyInstaller).
 
 ## Requirements

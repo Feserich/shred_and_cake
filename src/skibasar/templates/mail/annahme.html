@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><title>{{ event.name }}</title></head>
+<body style="font-family: Arial, Helvetica, sans-serif; font-size: 15px; color: #222; line-height: 1.4;">
+<p>Guten Tag {{ greeting_name }},</p>
+<p>vielen Dank für Ihre Artikel beim {{ event.name }}{% if event.event_date %} am {{ event.event_date.strftime("%d.%m.%Y") }}{% endif %}. Folgende Artikel haben wir angenommen:</p>
+<table cellpadding="6" cellspacing="0" style="border-collapse: collapse; font-size: 14px;">
+  <tr style="background: #eee; text-align: left;"><th style="text-align: right;">Nr.</th><th>Bezeichnung</th><th>Marke</th><th>Größe</th><th>Farbe</th><th style="text-align: right;">Preis</th></tr>
+  {% for a in articles %}
+  <tr style="border-top: 1px solid #ddd;"><td style="text-align: right;">{{ a.number }}</td><td>{{ a.description }}</td><td>{{ a.brand }}</td><td>{{ a.size }}</td><td>{{ a.color }}</td><td style="text-align: right; white-space: nowrap;">{{ a.price_cents|eur }}</td></tr>
+  {% endfor %}
+  <tr style="border-top: 2px solid #999; font-weight: bold;"><td colspan="5">{{ articles|length }} Artikel, Summe</td><td style="text-align: right; white-space: nowrap;">{{ total|eur }}</td></tr>
+</table>
+<p>{{ fee_status }}</p>
+<p>Bitte bewahren Sie diese E-Mail auf und bringen Sie sie zur Abholung mit (ausgedruckt oder auf dem Handy).</p>
+<p>Viele Grüße<br>{{ signature }}</p>
+</body></html>

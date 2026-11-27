@@ -1,12 +1,12 @@
 """Entry screens: register private sellers, enter their articles, print the seller list."""
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy.orm import Session
 
-from ..models import Event, Seller, SellerType
+from ..models import Event, MailKind, Seller, SellerType
 from ..money import PRICE_WARN_CENTS, MoneyError, format_eur, parse_eur
-from ..services import annahme
+from ..services import annahme, mail
 from ..services.annahme import AnnahmeError
 from ..services.numbering import next_private_number
 from .setup import _client, get_session, templates
@@ -56,8 +56,36 @@ def _get_seller(s: Session, seller_id: int) -> Seller:
     return seller
 
 
+def _confirm(request: Request, s: Session, seller: Seller) -> None:
+    """Queue the confirmation mail if due; a mail problem must never block the Annahme."""
+    try:
+        if mail.confirm_annahme(s, seller, client=_client(request)):
+            request.app.state.mailer.wake()
+    except mail.MailError:
+        s.rollback()
+
+
+def _switch_seller(request: Request, s: Session, seller_id: int | None) -> None:
+    """Remember the seller page this device has open; leaving one mails its list.
+
+    Fallback for the browser beacon (see annahme_seller.html), e.g. if it got lost.
+    """
+    open_pages = request.app.state.annahme_open
+    client = _client(request)
+    previous = open_pages.get(client)
+    if seller_id is None:
+        open_pages.pop(client, None)
+    else:
+        open_pages[client] = seller_id
+    if previous is not None and previous != seller_id:
+        seller = s.get(Seller, previous)
+        if seller is not None:
+            _confirm(request, s, seller)
+
+
 @router.get("", response_class=HTMLResponse)
 def entry_home(request: Request, q: str = "", s: Session = Depends(get_session)):
+    _switch_seller(request, s, None)
     return templates.TemplateResponse(
         request,
         "annahme.html",
@@ -105,7 +133,15 @@ def _detail_ctx(s: Session, seller: Seller, **extra) -> dict:
         "error": None,
         "price_warning": None,
         "seller_error": None,
+        **_mail_ctx(s, seller),
         **extra,
+    }
+
+
+def _mail_ctx(s: Session, seller: Seller) -> dict:
+    return {
+        "can_mail": mail.can_mail(s, seller),
+        "mails": [m for m in mail.mails_for_seller(s, seller) if m.kind == MailKind.annahme],
     }
 
 
@@ -119,6 +155,7 @@ def seller_detail(
     s: Session = Depends(get_session),
 ):
     seller = _get_seller(s, seller_id)
+    _switch_seller(request, s, seller_id)
     ctx = _detail_ctx(
         s,
         seller,
@@ -180,6 +217,26 @@ def fee_collect(request: Request, seller_id: int, s: Session = Depends(get_sessi
         ctx = _detail_ctx(s, seller, f=_seller_form(seller), error=str(e))
         return templates.TemplateResponse(request, "annahme_seller.html", ctx, status_code=422)
     return RedirectResponse(f"/annahme/{seller_id}?fee=1", status_code=303)
+
+
+@router.post("/{seller_id}/email-option")
+async def mail_option(request: Request, seller_id: int, s: Session = Depends(get_session)):
+    """The checkbox "per E-Mail senden" (sent by htmx on change; unchecked sends nothing)."""
+    seller = _get_seller(s, seller_id)
+    seller.annahme_mail = "send_mail" in await request.form()
+    s.commit()
+    return Response(status_code=204)
+
+
+@router.post("/{seller_id}/verlassen")
+def leave(request: Request, seller_id: int, s: Session = Depends(get_session)):
+    """Beacon from the browser when the seller page is left: mail the list if due."""
+    seller = _get_seller(s, seller_id)
+    open_pages = request.app.state.annahme_open
+    if open_pages.get(_client(request)) == seller_id:
+        open_pages.pop(_client(request), None)
+    _confirm(request, s, seller)
+    return Response(status_code=204)
 
 
 @router.post("/{seller_id}/artikel/zurueck", response_class=HTMLResponse)

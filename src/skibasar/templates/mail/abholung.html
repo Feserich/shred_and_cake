@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><title>{{ event.name }}</title></head>
+<body style="font-family: Arial, Helvetica, sans-serif; font-size: 15px; color: #222; line-height: 1.4;">
+<p>Guten Tag {{ greeting_name }},</p>
+<p>hier ist Ihre Abrechnung vom {{ event.name }} (abgerechnet am {{ seller.settled_at.strftime("%d.%m.%Y %H:%M") }}).</p>
+<table cellpadding="6" cellspacing="0" style="border-collapse: collapse; font-size: 14px;">
+  <tr style="background: #eee; text-align: left;"><th style="text-align: right;">Nr.</th><th>Bezeichnung</th><th style="text-align: right;">Preis</th><th>Status</th></tr>
+  {% for a in seller.articles %}
+  <tr style="border-top: 1px solid #ddd;"><td style="text-align: right;">{{ a.number }}</td><td>{{ a.description }}</td><td style="text-align: right; white-space: nowrap;">{{ a.price_cents|eur }}</td><td>{{ a.status.label }}</td></tr>
+  {% endfor %}
+</table>
+<table cellpadding="6" cellspacing="0" style="border-collapse: collapse; font-size: 14px; margin-top: 12px;">
+  <tr><td>Verkauft ({{ p.sold|length }} Artikel)</td><td style="text-align: right; white-space: nowrap;">{{ r.sold_total_cents|eur }}</td></tr>
+  {% if r.lost_total_cents %}<tr><td>Verloren, vom Verein erstattet ({{ p.lost|length }} Artikel)</td><td style="text-align: right; white-space: nowrap;">{{ r.lost_total_cents|eur }}</td></tr>{% endif %}
+  <tr><td>Provision</td><td style="text-align: right; white-space: nowrap;">− {{ r.commission_cents|eur }}</td></tr>
+  {% if r.open_offer_fee_cents %}<tr><td>Angebotsgebühr</td><td style="text-align: right; white-space: nowrap;">− {{ r.open_offer_fee_cents|eur }}</td></tr>{% endif %}
+  <tr style="border-top: 2px solid #999; font-weight: bold;"><td>{{ "Sie haben bezahlt" if r.seller_pays else "Auszahlung" }}</td><td style="text-align: right; white-space: nowrap;">{{ (r.payout_cents|abs)|eur }}</td></tr>
+</table>
+<p>{{ fee_status }}</p>
+<p>Vielen Dank fürs Mitmachen!</p>
+<p>Viele Grüße<br>{{ signature }}</p>
+</body></html>

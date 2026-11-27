@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
-from ..models import Event, Seller
-from ..services import abholung
+from ..models import Event, MailKind, Seller
+from ..services import abholung, mail
 from ..services.abholung import AbholungError
 from ..services.annahme import ambiguous_seller_ids, fee_status
 from .setup import _client, get_session, templates
@@ -22,7 +22,22 @@ def _get_seller(s: Session, seller_id: int) -> Seller:
     return seller
 
 
-def _detail(request: Request, s: Session, seller: Seller, *, error=None, status=200, undone=False):
+def _mail_ctx(s: Session, seller: Seller) -> dict:
+    return {
+        "can_mail": mail.can_mail(s, seller),
+        "mails": [m for m in mail.mails_for_seller(s, seller) if m.kind == MailKind.abholung],
+    }
+
+
+def _detail(
+    request: Request,
+    s: Session,
+    seller: Seller,
+    *,
+    error=None,
+    status=200,
+    undone=False,
+):
     event = s.get(Event, 1)
     p = abholung.preview(s, seller)
     status_text = (
@@ -36,6 +51,7 @@ def _detail(request: Request, s: Session, seller: Seller, *, error=None, status=
         "error": error,
         "undone": undone,
         "ambiguous": seller.id in ambiguous_seller_ids(s),
+        **_mail_ctx(s, seller),
     }
     return templates.TemplateResponse(request, "abholung_detail.html", ctx, status_code=status)
 
@@ -77,6 +93,12 @@ async def finish(request: Request, seller_id: int, s: Session = Depends(get_sess
     except AbholungError as e:
         s.rollback()
         return _detail(request, s, seller, error=str(e), status=409)
+    if "send_mail" in data and mail.can_mail(s, seller):
+        try:
+            mail.queue_for_seller(s, seller, MailKind.abholung, client=_client(request))
+            request.app.state.mailer.wake()
+        except mail.MailError:
+            s.rollback()  # the settlement is saved; the invoice page shows no mail then
     return RedirectResponse(f"/abholung/{seller_id}/rechnung?neu=1", status_code=303)
 
 
@@ -122,6 +144,7 @@ def invoice(request: Request, seller_id: int, s: Session = Depends(get_session))
         "p": p,
         "event": s.get(Event, 1),
         "fee_status": abholung.settled_fee_status(seller, p.settlement),
+        **_mail_ctx(s, seller),
     }
     return templates.TemplateResponse(request, "print_invoice.html", ctx)
 

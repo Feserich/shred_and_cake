@@ -1,0 +1,24 @@
+Guten Tag {{ greeting_name }},
+
+hier ist Ihre Abrechnung vom {{ event.name }} (abgerechnet am {{ seller.settled_at.strftime("%d.%m.%Y %H:%M") }}).
+
+{% for a in seller.articles %}
+Nr. {{ a.number }}: {{ a.description }} – {{ a.price_cents|eur }} – {{ a.status.label }}
+{% endfor %}
+
+Verkauft ({{ p.sold|length }} Artikel): {{ r.sold_total_cents|eur }}
+{% if r.lost_total_cents %}
+Verloren, vom Verein erstattet ({{ p.lost|length }} Artikel): {{ r.lost_total_cents|eur }}
+{% endif %}
+Provision: − {{ r.commission_cents|eur }}
+{% if r.open_offer_fee_cents %}
+Angebotsgebühr: − {{ r.open_offer_fee_cents|eur }}
+{% endif %}
+{{ "Sie haben bezahlt" if r.seller_pays else "Auszahlung" }}: {{ (r.payout_cents|abs)|eur }}
+
+{{ fee_status }}
+
+Vielen Dank fürs Mitmachen!
+
+Viele Grüße
+{{ signature }}

@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from .. import __version__
 from ..config import admin_pin
 from ..csv_import import parse_shop_csv, validate
-from ..models import Article, ArticleStatus, Event, Seller, SellerType
+from ..models import Article, ArticleStatus, Event, MailSecurity, MailStatus, Seller, SellerType
 from ..money import (
     MAX_COMMISSION_BP,
     MoneyError,
@@ -24,7 +24,7 @@ from ..money import (
     parse_percent_bp,
 )
 from ..services import admin_pin as admin_pin_service
-from ..services import reset, shops
+from ..services import mail, reset, shops
 from ..services.numbering import RangeError
 
 templates = Jinja2Templates(directory=Path(__file__).parent.parent / "templates")
@@ -78,9 +78,27 @@ def _pin_state(s: Session) -> str:
     return "set" if s.get(Event, 1).admin_pin_hash else "none"
 
 
+def _mail_form(m) -> dict:
+    return {
+        "enabled": m.enabled,
+        "host": m.host,
+        "port": str(m.port),
+        "security": m.security.value,
+        "username": m.username,
+        "sender_email": m.sender_email,
+        "sender_name": m.sender_name,
+        "has_password": bool(m.password),
+    }
+
+
 def _settings_ctx(s: Session, **overrides) -> dict:
     ctx = {
         "f": _event_form(s.get(Event, 1)),
+        "mf": _mail_form(mail.get_settings(s)),
+        "outbox": mail.outbox(s),
+        "mail_saved": 0,
+        "mail_error": None,
+        "mail_message": None,
         "saved": 0,
         "pin_saved": 0,
         "pin_state": _pin_state(s),
@@ -89,6 +107,7 @@ def _settings_ctx(s: Session, **overrides) -> dict:
         "reset_done": 0,
         "reset_error": None,
         "reset_confirm_word": reset.CONFIRM_WORD,
+        "mail_security": MailSecurity,
     }
     return {**ctx, **overrides}
 
@@ -99,10 +118,71 @@ def settings_page(
     saved: int = 0,
     pin_saved: int = 0,
     reset_done: int = 0,
+    mail_saved: int = 0,
     s: Session = Depends(get_session),
 ):
-    ctx = _settings_ctx(s, saved=saved, pin_saved=pin_saved, reset_done=reset_done)
+    ctx = _settings_ctx(
+        s, saved=saved, pin_saved=pin_saved, reset_done=reset_done, mail_saved=mail_saved
+    )
     return templates.TemplateResponse(request, "setup.html", ctx)
+
+
+_MAIL_FIELDS = ("host", "port", "security", "username", "password", "sender_email", "sender_name")
+
+
+@router.post("/einstellungen/email", response_class=HTMLResponse)
+async def mail_settings_save(request: Request, s: Session = Depends(get_session)):
+    data = await request.form()
+    form = {k: str(data.get(k, "")) for k in _MAIL_FIELDS}
+    enabled = "enabled" in data
+    try:
+        mail.save_settings(s, enabled=enabled, **form, client=_client(request))
+    except mail.MailError as e:
+        s.rollback()
+        mf = {**_mail_form(mail.get_settings(s)), **form, "enabled": enabled}
+        ctx = _settings_ctx(s, mf=mf, mail_error=str(e))
+        return templates.TemplateResponse(request, "setup.html", ctx, status_code=422)
+    request.app.state.mailer.wake()
+    return RedirectResponse("/einstellungen?mail_saved=1#email", status_code=303)
+
+
+@router.post("/einstellungen/email/test", response_class=HTMLResponse)
+def mail_test(request: Request, recipient: str = Form(""), s: Session = Depends(get_session)):
+    try:
+        request.app.state.mailer.send_test(recipient)
+    except mail.MailError as e:
+        ctx = _settings_ctx(s, mail_error=f"Test-E-Mail nicht gesendet: {e}")
+        return templates.TemplateResponse(request, "setup.html", ctx, status_code=422)
+    ctx = _settings_ctx(s, mail_message=f"Test-E-Mail an {recipient.strip()} gesendet.")
+    return templates.TemplateResponse(request, "setup.html", ctx)
+
+
+@router.post("/einstellungen/email/senden", response_class=HTMLResponse)
+def mail_send_now(request: Request, s: Session = Depends(get_session)):
+    """Try the queue now, e.g. once the internet is back."""
+    sent = request.app.state.mailer.send_pending()
+    s.expire_all()
+    waiting = sum(m.status == MailStatus.pending for m in mail.outbox(s))
+    text = f"{sent} E-Mail(s) gesendet."
+    if waiting:
+        text += f" {waiting} warten noch – Grund steht in der Liste."
+    ctx = _settings_ctx(s, mail_message=text)
+    return templates.TemplateResponse(request, "setup.html", ctx)
+
+
+@router.post("/einstellungen/email/erneut")
+def mail_retry(
+    request: Request, mail_id: int | None = Form(None), s: Session = Depends(get_session)
+):
+    mail.retry(s, mail_id)
+    request.app.state.mailer.wake()
+    return RedirectResponse("/einstellungen#email", status_code=303)
+
+
+@router.post("/einstellungen/email/loeschen")
+def mail_discard(mail_id: int = Form(...), s: Session = Depends(get_session)):
+    mail.discard(s, mail_id)
+    return RedirectResponse("/einstellungen#email", status_code=303)
 
 
 @router.post("/einstellungen/admin-pin", response_class=HTMLResponse)

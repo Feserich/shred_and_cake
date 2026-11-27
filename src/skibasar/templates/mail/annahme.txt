@@ -1,0 +1,16 @@
+Guten Tag {{ greeting_name }},
+
+vielen Dank für Ihre Artikel beim {{ event.name }}{% if event.event_date %} am {{ event.event_date.strftime("%d.%m.%Y") }}{% endif %}. Folgende Artikel haben wir angenommen:
+
+{% for a in articles %}
+{% set extras = [a.brand, a.size, a.color]|select|list %}
+Nr. {{ a.number }}: {{ a.description }}{% if extras %} ({{ extras|join(", ") }}){% endif %} – {{ a.price_cents|eur }}
+{% endfor %}
+
+{{ articles|length }} Artikel, Summe {{ total|eur }}
+{{ fee_status }}
+
+Bitte bewahren Sie diese E-Mail auf und bringen Sie sie zur Abholung mit (ausgedruckt oder auf dem Handy).
+
+Viele Grüße
+{{ signature }}

@@ -13,6 +13,7 @@ from sqlalchemy import (
     String,
     Text,
     func,
+    text,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -95,6 +96,10 @@ class Seller(Base):
     settled_open_fee_cents: Mapped[int | None] = mapped_column(Integer)
     settled_payout_cents: Mapped[int | None] = mapped_column(Integer)
     notes: Mapped[str] = mapped_column(Text, default="")
+    # Mail the article list when the volunteer leaves the Annahme page (if mail is set up)
+    annahme_mail: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text("1"))
+    # Fingerprint of the last mailed article list: unchanged lists are not mailed again
+    annahme_mail_sig: Mapped[str] = mapped_column(String(64), default="", server_default="")
 
     articles: Mapped[list["Article"]] = relationship(
         back_populates="seller", order_by="Article.number"
@@ -240,3 +245,75 @@ class AuditLog(Base):
     action: Mapped[str] = mapped_column(String(50))
     before: Mapped[str] = mapped_column(Text, default="")
     after: Mapped[str] = mapped_column(Text, default="")
+
+
+class MailSecurity(enum.StrEnum):
+    starttls = "starttls"  # usually port 587
+    ssl = "ssl"  # usually port 465
+    none = "none"  # unencrypted, only for local test servers
+
+
+class MailSettings(Base):
+    """Optional SMTP account for confirmation mails to sellers (single row, id 1)."""
+
+    __tablename__ = "mail_settings"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    host: Mapped[str] = mapped_column(String(200), default="")
+    port: Mapped[int] = mapped_column(Integer, default=587)
+    security: Mapped[MailSecurity] = mapped_column(
+        Enum(MailSecurity), default=MailSecurity.starttls
+    )
+    username: Mapped[str] = mapped_column(String(200), default="")
+    # Stored as given: SMTP needs the clear password (use an app password where possible)
+    password: Mapped[str] = mapped_column(String(200), default="")
+    sender_email: Mapped[str] = mapped_column(String(200), default="")
+    sender_name: Mapped[str] = mapped_column(String(200), default="")
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.host and self.sender_email)
+
+    @property
+    def active(self) -> bool:
+        return self.enabled and self.configured
+
+
+class MailKind(enum.StrEnum):
+    annahme = "annahme"
+    abholung = "abholung"
+    test = "test"
+
+    @property
+    def label(self) -> str:
+        return {"annahme": "Annahme", "abholung": "Abrechnung", "test": "Test"}[self.value]
+
+
+class MailStatus(enum.StrEnum):
+    pending = "pending"  # waiting to be sent (e.g. no internet)
+    sent = "sent"
+    failed = "failed"  # rejected by the server; sent again only on request
+
+    @property
+    def label(self) -> str:
+        return {"pending": "wartet", "sent": "gesendet", "failed": "fehlgeschlagen"}[self.value]
+
+
+class OutgoingMail(Base):
+    """Mail queue: content is frozen when queued, a background thread sends it when online."""
+
+    __tablename__ = "mail_outbox"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    seller_id: Mapped[int | None] = mapped_column(ForeignKey("seller.id"), index=True)
+    kind: Mapped[MailKind] = mapped_column(Enum(MailKind))
+    recipient: Mapped[str] = mapped_column(String(200))
+    subject: Mapped[str] = mapped_column(String(300))
+    body_text: Mapped[str] = mapped_column(Text)
+    body_html: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[MailStatus] = mapped_column(Enum(MailStatus), default=MailStatus.pending)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    last_error: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime)

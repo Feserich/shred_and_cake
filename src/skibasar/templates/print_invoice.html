@@ -4,6 +4,7 @@
 {% block title %}Abrechnung {{ seller.display_name }}{% endblock %}
 {% block content %}
 <p class="no-print"><a href="/abholung/{{ seller.id }}">← Zurück</a> <button onclick="window.print()">Drucken</button></p>
+{% include "_mail_box.html" %}
 <h1>{{ event.name }} – Abrechnung</h1>
 <p>
   <strong>{{ seller.display_name }}</strong><br>

@@ -30,6 +30,7 @@ from .routers import (
     uebersicht,
     zugang,
 )
+from .services.mail import Mailer
 
 
 def create_app(
@@ -44,12 +45,14 @@ def create_app(
     app.state.session_factory = init_db(engine)
 
     app.state.pending_imports = {}
+    app.state.annahme_open = {}  # client -> seller page open in the Annahme
     app.state.event_pin = event_pin or config.event_pin()
     app.state.lan_url = lan_address
     app.state.access_secret = secrets.token_bytes(32)
     app.state.login_failures = {}
     app.middleware("http")(zugang.laptop_only)
     app.middleware("http")(zugang.pin_gate)
+    app.state.mailer = Mailer(app.state.session_factory)
     app.state.backup = None
     if str(db_path) != ":memory:":
         app.state.backup = Backup(db_path, app.state.session_factory)
@@ -135,6 +138,7 @@ def run(argv: list[str] | None = None) -> None:
     db_path = config.data_dir() / "skibasar.db"
     app = create_app(db_path=db_path, event_pin=pin, lan_address=address)
     app.state.backup.start()
+    app.state.mailer.start()
 
     local = f"http://localhost:{args.port}"
     print(f"Skibasar {__version__} läuft: {local}")

@@ -151,3 +151,9 @@ td code { white-space: normal; word-break: break-all; font-size: .8rem; }
 
 .fee-box { border: 2px solid var(--pico-primary-background); border-radius: var(--pico-border-radius); padding: .8rem 1rem; margin-bottom: 1rem; }
 .fee-box .fee-amount { font-size: 2.6rem; line-height: 1.2; display: block; }
+
+/* Small buttons side by side in a table cell (e.g. the mail queue) */
+form.inline { display: inline-block; margin: 0 .3rem 0 0; }
+form.inline button { width: auto; margin: 0; padding: .2rem .6rem; font-size: .85rem; }
+.mail-option { margin: .5rem 0; }
+.mail-status { margin: .3rem 0 1rem; font-size: .9rem; }

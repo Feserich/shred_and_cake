@@ -1,0 +1,8 @@
+{# Mails to this seller and their status. Needs: mails #}
+{% if mails %}
+<ul class="mail-status no-print">
+  {% for m in mails %}
+  <li>E-Mail an {{ m.recipient }} vom {{ m.created_at.strftime("%d.%m. %H:%M") }}: <strong>{{ m.status.label }}</strong>{% if m.status == "pending" %} (wird automatisch gesendet, sobald Internet da ist){% elif m.status == "failed" %} – {{ m.last_error }}{% endif %}</li>
+  {% endfor %}
+</ul>
+{% endif %}

@@ -7,7 +7,7 @@ from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from .models import Base, Event
+from .models import Base, Event, MailSettings
 
 
 def make_engine(db_path: Path | str) -> Engine:
@@ -37,6 +37,12 @@ def _upgrade(engine: Engine) -> None:
     if "settled_lost_total_cents" not in columns:
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE seller ADD COLUMN settled_lost_total_cents INTEGER"))
+    if "annahme_mail" not in columns:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE seller ADD COLUMN annahme_mail BOOLEAN DEFAULT 1"))
+            conn.execute(
+                text("ALTER TABLE seller ADD COLUMN annahme_mail_sig VARCHAR(64) DEFAULT ''")
+            )
     if "offer_fee_paid_units" not in columns:
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE seller ADD COLUMN offer_fee_paid_units INTEGER"))
@@ -76,7 +82,9 @@ def init_db(engine: Engine) -> sessionmaker[Session]:
     with factory() as s:
         if s.get(Event, 1) is None:
             s.add(Event(id=1))
-            s.commit()
+        if s.get(MailSettings, 1) is None:
+            s.add(MailSettings(id=1))
+        s.commit()
     return factory
 
 

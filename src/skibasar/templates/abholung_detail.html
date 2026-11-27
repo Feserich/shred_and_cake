@@ -70,9 +70,13 @@
     <button type="button" class="secondary" id="goto-lost">Zum Melden springen</button>
   </div>
   {% endif %}
+  {% if can_mail %}
+  <label class="check mail-option"><input type="checkbox" name="send_mail" value="1" checked> Abrechnung per E-Mail an {{ seller.email }} senden</label>
+  {% endif %}
   <button type="submit" class="big-action">Abrechnung abschließen</button>
   {% endif %}
 </form>
+{% include "_mail_box.html" %}
 
 {% if p.lost %}
 <h2>Verloren – vom Verein erstattet ({{ p.lost|length }})</h2>

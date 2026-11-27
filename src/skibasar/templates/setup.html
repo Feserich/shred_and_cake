@@ -18,6 +18,58 @@
   <button type="submit">Speichern</button>
 </form>
 
+<h2 id="email">E-Mail-Versand (optional)</h2>
+{% if mail_error %}<p class="error" role="alert">{{ mail_error }}</p>{% endif %}
+{% if mail_message %}<p class="ok">{{ mail_message }}</p>{% endif %}
+{% if mail_saved %}<div data-toast="ok">E-Mail-Einstellungen gespeichert.</div>{% endif %}
+<p class="hint">Wer möchte, kann Verkäufern mit E-Mail-Adresse ihre Artikelliste (Annahme) und ihre Abrechnung (Abholung) per E-Mail schicken – statt oder zusätzlich zum Ausdruck. Ohne Internet warten die E-Mails und werden automatisch verschickt, sobald wieder eine Verbindung besteht. Die Zugangsdaten stehen beim E-Mail-Anbieter (Stichwort „SMTP“). Am besten ein eigenes Vereinspostfach bzw. ein App-Passwort verwenden: Das Passwort wird in der Datenbank und damit auch in den Sicherungen gespeichert.</p>
+<form method="post" action="/einstellungen/email">
+  <label class="check"><input type="checkbox" name="enabled" value="1" role="switch" {% if mf.enabled %}checked{% endif %}> E-Mail-Versand einschalten</label>
+  <label>SMTP-Server <input name="host" value="{{ mf.host }}" placeholder="z. B. smtp.example.de" autocomplete="off"></label>
+  <div class="grid">
+    <label>Port <input name="port" inputmode="numeric" value="{{ mf.port }}"></label>
+    <label>Verschlüsselung
+      <select name="security">
+        <option value="starttls" {% if mf.security == "starttls" %}selected{% endif %}>STARTTLS (meist Port 587)</option>
+        <option value="ssl" {% if mf.security == "ssl" %}selected{% endif %}>SSL/TLS (meist Port 465)</option>
+        <option value="none" {% if mf.security == "none" %}selected{% endif %}>Keine (nur zum Testen)</option>
+      </select>
+    </label>
+  </div>
+  <label>Benutzername <input name="username" value="{{ mf.username }}" autocomplete="off"></label>
+  <label>Passwort <input type="password" name="password" autocomplete="new-password" placeholder="{{ 'gespeichert – leer lassen, um es zu behalten' if mf.has_password else '' }}"></label>
+  <label>Absender-Adresse <input type="email" name="sender_email" value="{{ mf.sender_email }}" placeholder="z. B. skibasar@verein.de"></label>
+  <label>Absender-Name <input name="sender_name" value="{{ mf.sender_name }}" placeholder="z. B. Skiclub – Skibasar"></label>
+  <button type="submit">E-Mail-Einstellungen speichern</button>
+</form>
+<form method="post" action="/einstellungen/email/test" class="entry-form">
+  <label class="wide">Test-E-Mail an <input type="email" name="recipient" placeholder="eigene Adresse" required></label>
+  <button type="submit" class="secondary">Test-E-Mail senden</button>
+</form>
+{% if outbox %}
+<h3>Gesendete und wartende E-Mails</h3>
+{% set waiting = outbox|selectattr("status", "equalto", "pending")|list %}
+{% set failed = outbox|selectattr("status", "equalto", "failed")|list %}
+{% if waiting %}<p class="warn">{{ waiting|length }} E-Mail(s) warten auf den Versand.</p>{% endif %}
+<div class="table-wrap"><table>
+  <tr><th>Erstellt</th><th>Art</th><th>An</th><th>Status</th><th></th></tr>
+  {% for m in outbox %}
+  <tr>
+    <td>{{ m.created_at.strftime("%d.%m. %H:%M") }}</td>
+    <td>{{ m.kind.label }}</td>
+    <td>{{ m.recipient }}</td>
+    <td>{{ m.status.label }}{% if m.sent_at %} {{ m.sent_at.strftime("%H:%M") }}{% endif %}{% if m.last_error and m.status != "sent" %}<br><small class="muted">{{ m.last_error }}</small>{% endif %}</td>
+    <td>{% if m.status != "sent" %}
+      {% if m.status == "failed" %}<form method="post" action="/einstellungen/email/erneut" class="inline"><input type="hidden" name="mail_id" value="{{ m.id }}"><button type="submit" class="secondary outline">Erneut</button></form>{% endif %}
+      <form method="post" action="/einstellungen/email/loeschen" class="inline" data-confirm="Diese E-Mail an {{ m.recipient }} nicht senden und löschen?"><input type="hidden" name="mail_id" value="{{ m.id }}"><button type="submit" class="secondary outline">Löschen</button></form>
+    {% endif %}</td>
+  </tr>
+  {% endfor %}
+</table></div>
+{% if waiting %}<form method="post" action="/einstellungen/email/senden"><button type="submit" class="secondary">Wartende jetzt senden</button></form>{% endif %}
+{% if failed %}<form method="post" action="/einstellungen/email/erneut"><button type="submit" class="secondary">Alle fehlgeschlagenen erneut versuchen</button></form>{% endif %}
+{% endif %}
+
 <h2>Admin-PIN</h2>
 {% if pin_error %}<p class="error">{{ pin_error }}</p>{% endif %}
 {% if pin_saved %}<div data-toast="ok">Admin-PIN gespeichert.</div>{% endif %}

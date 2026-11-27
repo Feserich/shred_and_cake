@@ -1,16 +1,29 @@
-"""Delete all Basar data (e.g. test data before the real Basar); settings and admin PIN stay."""
+"""Delete all Basar data (e.g. test data before the real Basar); settings and admin PIN stay.
+
+The mail account stays as well; the mail queue goes (it holds sellers' data).
+"""
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from ..config import admin_pin_configured
-from ..models import Article, AuditLog, Closing, Event, Expense, Sale, SaleItem, Seller
+from ..models import (
+    Article,
+    AuditLog,
+    Closing,
+    Event,
+    Expense,
+    OutgoingMail,
+    Sale,
+    SaleItem,
+    Seller,
+)
 from . import admin_pin, audit
 
 CONFIRM_WORD = "LÖSCHEN"
 
 # Children before parents (foreign keys are enforced)
-TABLES = (SaleItem, Article, Sale, Seller, Expense, Closing, AuditLog)
+TABLES = (OutgoingMail, SaleItem, Article, Sale, Seller, Expense, Closing, AuditLog)
 
 
 class ResetError(ValueError):
@@ -29,7 +42,7 @@ def check(s: Session, *, confirm: str, pin: str = "") -> None:
 
 
 def delete_all_data(s: Session, *, client: str = "") -> dict:
-    """Delete sellers, shops, articles, sales, expenses, closing values and the audit log.
+    """Delete sellers, shops, articles, sales, expenses, closing values, mails and the audit log.
 
     Call ``check`` first. Returns the number of deleted sellers, articles and sales.
     """

@@ -4,11 +4,21 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import and_, or_, select, text, update
+from sqlalchemy import and_, delete, or_, select, text, update
 from sqlalchemy.orm import Session
 
 from ..fees import FeeRules, Settlement, settle
-from ..models import Article, ArticleStatus, AuditLog, Event, Seller, SellerType
+from ..models import (
+    Article,
+    ArticleStatus,
+    AuditLog,
+    Event,
+    MailKind,
+    MailStatus,
+    OutgoingMail,
+    Seller,
+    SellerType,
+)
 from ..money import format_eur
 from . import admin_pin, audit
 
@@ -245,6 +255,14 @@ def undo_settlement(s: Session, seller: Seller, *, admin_pin_given: str, client:
     seller.settled_commission_cents = None
     seller.settled_open_fee_cents = None
     seller.settled_payout_cents = None
+    # A settlement mail still waiting in the queue would now be wrong
+    s.execute(
+        delete(OutgoingMail).where(
+            OutgoingMail.seller_id == seller.id,
+            OutgoingMail.kind == MailKind.abholung,
+            OutgoingMail.status != MailStatus.sent,
+        )
+    )
     audit.log(s, "seller", seller.id, "unsettle", before, {"available": returned}, client)
     s.commit()
     s.expire_all()  # the bulk UPDATE bypassed the ORM, so reload article statuses
