@@ -1,6 +1,8 @@
 """Settings and shop management screens (German UI)."""
 
+import hashlib
 import secrets
+from functools import lru_cache
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile
@@ -29,6 +31,21 @@ templates = Jinja2Templates(directory=Path(__file__).parent.parent / "templates"
 templates.env.filters["eur"] = format_eur
 templates.env.globals["ArticleStatus"] = ArticleStatus
 templates.env.globals["app_version"] = __version__
+
+STATIC_DIR = Path(__file__).parent.parent / "static"
+
+
+@lru_cache(maxsize=64)
+def _static_hash(name: str, mtime_ns: int) -> str:
+    return hashlib.sha256((STATIC_DIR / name).read_bytes()).hexdigest()[:8]
+
+
+def static_url(name: str) -> str:
+    """URL with a content hash, so browsers load a changed file instead of a cached old one."""
+    return f"/static/{name}?v={_static_hash(name, (STATIC_DIR / name).stat().st_mtime_ns)}"
+
+
+templates.env.globals["static_url"] = static_url
 
 router = APIRouter()
 

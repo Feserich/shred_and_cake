@@ -13,6 +13,7 @@
 {% else %}
 <p class="warn">Vorschau – noch nichts gespeichert. Erst „Abrechnung abschließen“ speichert.</p>
 {% endif %}
+<p><a role="button" class="secondary" href="/abholung/{{ seller.id }}/artikelliste" target="_blank">Artikelliste drucken</a></p>
 
 <h2>Verkauft ({{ p.sold|length }})</h2>
 <div class="table-wrap"><table>

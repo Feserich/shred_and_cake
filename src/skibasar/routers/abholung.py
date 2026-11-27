@@ -1,5 +1,7 @@
 """Pickup screens: search, read-only settlement preview, explicit commit, A4 invoice."""
 
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
@@ -122,3 +124,11 @@ def invoice(request: Request, seller_id: int, s: Session = Depends(get_session))
         "fee_status": abholung.settled_fee_status(seller, p.settlement),
     }
     return templates.TemplateResponse(request, "print_invoice.html", ctx)
+
+
+@router.get("/{seller_id}/artikelliste", response_class=HTMLResponse)
+def pickup_list(request: Request, seller_id: int, s: Session = Depends(get_session)):
+    """All articles of a seller, e.g. to hand back the unsold ones before the settlement."""
+    seller = _get_seller(s, seller_id)
+    ctx = {"p": abholung.preview(s, seller), "event": s.get(Event, 1), "now": datetime.now()}
+    return templates.TemplateResponse(request, "print_pickup_list.html", ctx)

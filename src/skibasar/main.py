@@ -54,7 +54,7 @@ def create_app(
     if str(db_path) != ":memory:":
         app.state.backup = Backup(db_path, app.state.session_factory)
         app.state.backup.install()
-    app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
+    app.mount("/static", StaticFiles(directory=setup.STATIC_DIR), name="static")
     app.include_router(setup.router)
     app.include_router(annahme.router)
     app.include_router(kasse.router)

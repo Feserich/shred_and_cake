@@ -54,6 +54,8 @@ Falscher Verkauf schon abgeschlossen? Unter **Verkäufe** den Verkauf öffnen un
 3. Die Seite zeigt die Auszahlung – Gebühren und Provision sind schon abgezogen. Erst **„Abrechnung abschließen“** speichert.
 4. **Rechnung drucken**, Geld auszahlen, unterschreiben lassen.
 
+*Optional – erst Ausrüstung zurückgeben, später auszahlen:* Hat ein Verkäufer viele Artikel, oben auf seiner Abholungsseite **„Artikelliste drucken“** wählen. Die Liste zeigt alle nicht verkauften Artikel (mit Kästchen zum Abhaken bei der Rückgabe), die verkauften Artikel und eine Unterschriftszeile „Nicht verkaufte Artikel erhalten“. Damit die Ausrüstung heraussuchen und übergeben. Das Drucken speichert nichts – die Abrechnung bleibt offen. Danach wie oben weiter: Fehlt ein Artikel, den Haken entfernen bzw. als verloren melden, dann **„Abrechnung abschließen“** und auszahlen.
+
 ### 4 · Übersicht
 Tabellen mit allen Verkäufern, Artikeln und Verkäufen. Fehler lassen sich hier jederzeit korrigieren. Unter **Protokoll** steht jede Änderung. Bei bereits abgerechneten Verkäufern ist die Admin-PIN nötig.
 

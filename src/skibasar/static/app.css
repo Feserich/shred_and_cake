@@ -102,9 +102,20 @@ dialog#confirm-dialog footer button { width: auto; margin: 0; }
 @media print {
   .no-print { display: none !important; }
   :root { --pico-color: #000; --pico-background-color: #fff; --pico-font-size: 100%; }
-  body { font-size: 11pt; background: #fff; color: #000; }
-  main { max-width: none; padding: 0; }
+  main, main.container { max-width: none; width: 100%; padding: 0; margin: 0; }
+  @page { margin: 12mm; }
   table { display: table; }
+  /* Compact printouts: one line per article, fewer pages */
+  body { font-size: 10pt; line-height: 1.35; background: #fff; color: #000; }
+  h1 { font-size: 15pt; margin: 0 0 .4rem; }
+  h2 { font-size: 12pt; margin: .8rem 0 .3rem; break-after: avoid; }
+  p { margin-bottom: .4rem; }
+  table { margin-bottom: .5rem; }
+  th, td { padding: .3rem .5rem; line-height: 1.35; }
+  td.num, th.num { white-space: nowrap; }
+  tr { break-inside: avoid; }
+  .signature { margin-top: 1.5rem; }
+  .signature-compact { margin: 1rem 0 .8rem; }
 }
 
 /* Kasse */

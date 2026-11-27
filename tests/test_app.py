@@ -1,8 +1,11 @@
+import os
+
 import pytest
 from fastapi.testclient import TestClient
 
 from skibasar import __version__, main
 from skibasar.main import create_app
+from skibasar.routers import setup
 
 
 def test_index(tmp_path):
@@ -51,3 +54,19 @@ def test_htmx_errors_are_fragments(tmp_path):
     client = TestClient(create_app(tmp_path / "app.db"))
     r = client.get("/abholung/999", headers={"HX-Request": "true"})
     assert r.status_code == 404 and r.text == '<p class="error">Verkäufer nicht gefunden</p>'
+
+
+def test_static_urls_change_with_file_content(tmp_path, monkeypatch):
+    """Browsers must not keep a cached old app.css/app.js after an update."""
+    client = TestClient(create_app(tmp_path / "app.db"))
+    page = client.get("/einstellungen").text
+    href = page.split('href="/static/app.css?v=')[1].split('"')[0]
+    assert client.get(f"/static/app.css?v={href}").status_code == 200
+
+    css = tmp_path / "x.css"
+    css.write_text("a{}")
+    monkeypatch.setattr(setup, "STATIC_DIR", tmp_path)
+    first = setup.static_url("x.css")
+    css.write_text("b{}")
+    os.utime(css, ns=(1, 1))  # a different mtime, as after an update
+    assert setup.static_url("x.css") != first

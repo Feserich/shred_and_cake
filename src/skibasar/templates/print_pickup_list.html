@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% set seller = p.seller %}
+{% block title %}Artikelliste {{ seller.display_name }}{% endblock %}
+{% block content %}
+<p class="no-print"><a href="/abholung/{{ seller.id }}">← Zurück</a> <button onclick="window.print()">Drucken</button></p>
+<h1>{{ event.name }} – Artikelliste zur Abholung</h1>
+<p>
+  <strong>{{ seller.display_name }}</strong><br>
+  {% if seller.address %}{{ seller.address }}<br>{% endif %}
+  Stand {{ now.strftime("%d.%m.%Y %H:%M") }}
+</p>
+<p>{% if seller.settled_at %}Abgerechnet am {{ seller.settled_at.strftime("%d.%m.%Y %H:%M") }} – die Beträge stehen auf der Rechnung.{% else %}Keine Abrechnung – die Auszahlung folgt mit der Rechnung.{% endif %}</p>
+
+{% set back = p.unsold if not seller.settled_at else p.other|selectattr("status", "equalto", ArticleStatus.returned)|list %}
+<h2>Nicht verkauft – {{ "zurückgegeben" if seller.settled_at else "geht zurück" }} ({{ back|length }})</h2>
+<table>
+  <tr><th>✓</th><th class="num">Nr.</th><th>Bezeichnung</th><th>Marke</th><th>Größe</th><th>Farbe</th><th class="num">Preis</th></tr>
+  {% for a in back %}
+  <tr><td>☐</td><td class="num">{{ a.number }}</td><td>{{ a.description }}</td><td>{{ a.brand }}</td>
+      <td>{{ a.size }}</td><td>{{ a.color }}</td><td class="num">{{ a.price_cents|eur }}</td></tr>
+  {% else %}
+  <tr><td colspan="7">Keine.</td></tr>
+  {% endfor %}
+</table>
+<p class="signature signature-compact">Nicht verkaufte Artikel erhalten. Unterschrift Verkäufer: ______________________________ Datum: ______________</p>
+
+<h2>Verkauft ({{ p.sold|length }})</h2>
+<table>
+  <tr><th class="num">Nr.</th><th>Bezeichnung</th><th>Marke</th><th>Größe</th><th>Farbe</th><th class="num">Preis</th></tr>
+  {% for a in p.sold %}
+  <tr><td class="num">{{ a.number }}</td><td>{{ a.description }}</td><td>{{ a.brand }}</td>
+      <td>{{ a.size }}</td><td>{{ a.color }}</td><td class="num">{{ a.price_cents|eur }}</td></tr>
+  {% else %}
+  <tr><td colspan="6">Nichts verkauft.</td></tr>
+  {% endfor %}
+</table>
+
+{% set rest = p.lost + (p.unsold + p.other|rejectattr("status", "equalto", ArticleStatus.returned)|list if seller.settled_at else p.other) %}
+{% if rest %}
+<h2>Sonstige ({{ rest|length }})</h2>
+<table>
+  <tr><th class="num">Nr.</th><th>Bezeichnung</th><th class="num">Preis</th><th>Status</th></tr>
+  {% for a in rest %}
+  <tr><td class="num">{{ a.number }}</td><td>{{ a.description }}</td><td class="num">{{ a.price_cents|eur }}</td><td>{{ a.status.label }}</td></tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% endblock %}

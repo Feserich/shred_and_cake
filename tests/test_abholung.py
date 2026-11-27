@@ -214,3 +214,23 @@ def test_invoice_shows_fee_paid_at_entry_and_rest_deducted(client):
     invoice = client.get("/abholung/1/rechnung").text
     assert "Angebotsgebühr 6,00 € bei der Annahme bezahlt" in invoice
     assert "weitere 2,00 € wurden bei der Abrechnung abgezogen" in invoice
+
+
+def test_pickup_list_before_and_after_settlement(client):
+    _sell(client, 0)
+    assert "/abholung/1/artikelliste" in client.get("/abholung/1").text
+    page = client.get("/abholung/1/artikelliste").text
+    back, sold = page.split("Verkauft (1)")
+    assert "geht zurück (2)" in back and "Ding 1" in back and "Ding 2" in back
+    assert "Ding 0" in sold and "Ding 0" not in back
+    assert "Keine Abrechnung" in page and "Unterschrift" in page
+    # Printing the list changes nothing
+    with client.app.state.session_factory() as s:
+        assert s.get(Seller, 1).settled_at is None
+
+    client.post("/abholung/1/abschluss", data={"returned": ["1"]}, follow_redirects=False)
+    page = client.get("/abholung/1/artikelliste").text
+    back, rest = page.split("Verkauft (1)")
+    assert "zurückgegeben (1)" in back and "Ding 1" in back and "Ding 2" not in back
+    assert "Sonstige (1)" in rest and "Ding 2" in rest and "Abgerechnet am" in page
+    assert client.get("/abholung/99/artikelliste").status_code == 404

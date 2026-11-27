@@ -4,11 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Skibasar{% endblock %}</title>
-  <link rel="stylesheet" href="/static/pico.min.css">
-  <link rel="stylesheet" href="/static/app.css">
-  <script src="/static/htmx.min.js" defer></script>
-  <script src="/static/alpine.min.js" defer></script>
-  <script src="/static/app.js" defer></script>
+  <link rel="stylesheet" href="{{ static_url('pico.min.css') }}">
+  <link rel="stylesheet" href="{{ static_url('app.css') }}">
+  <script src="{{ static_url('htmx.min.js') }}" defer></script>
+  <script src="{{ static_url('alpine.min.js') }}" defer></script>
+  <script src="{{ static_url('app.js') }}" defer></script>
 </head>
 <body>
   {% set on_laptop = request.client and request.client.host in ("127.0.0.1", "::1", "localhost") %}
