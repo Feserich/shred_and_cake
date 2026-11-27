@@ -239,6 +239,15 @@ class Backup:
         """Newest first."""
         return sorted(self.backup_dir.glob("skibasar-*.db"), reverse=True)
 
+    def archive_journal(self) -> Path | None:
+        """Move the journal into backups/ so a new one starts (after deleting all data)."""
+        with self._lock:
+            if not self.journal_path.exists():
+                return None
+            target = self.backup_dir / f"journal-{datetime.now():%Y%m%d-%H%M%S}.csv"
+            os.replace(self.journal_path, target)
+            return target
+
     def run_all(self) -> Path:
         self.snapshot()
         return self.sqlite_backup()

@@ -22,7 +22,7 @@ from ..money import (
     parse_percent_bp,
 )
 from ..services import admin_pin as admin_pin_service
-from ..services import shops
+from ..services import reset, shops
 from ..services.numbering import RangeError
 
 templates = Jinja2Templates(directory=Path(__file__).parent.parent / "templates")
@@ -61,18 +61,30 @@ def _pin_state(s: Session) -> str:
     return "set" if s.get(Event, 1).admin_pin_hash else "none"
 
 
-@router.get("/einstellungen", response_class=HTMLResponse)
-def settings_page(
-    request: Request, saved: int = 0, pin_saved: int = 0, s: Session = Depends(get_session)
-):
+def _settings_ctx(s: Session, **overrides) -> dict:
     ctx = {
         "f": _event_form(s.get(Event, 1)),
-        "saved": saved,
-        "pin_saved": pin_saved,
+        "saved": 0,
+        "pin_saved": 0,
         "pin_state": _pin_state(s),
         "error": None,
         "pin_error": None,
+        "reset_done": 0,
+        "reset_error": None,
+        "reset_confirm_word": reset.CONFIRM_WORD,
     }
+    return {**ctx, **overrides}
+
+
+@router.get("/einstellungen", response_class=HTMLResponse)
+def settings_page(
+    request: Request,
+    saved: int = 0,
+    pin_saved: int = 0,
+    reset_done: int = 0,
+    s: Session = Depends(get_session),
+):
+    ctx = _settings_ctx(s, saved=saved, pin_saved=pin_saved, reset_done=reset_done)
     return templates.TemplateResponse(request, "setup.html", ctx)
 
 
@@ -87,16 +99,34 @@ def admin_pin_save(
         admin_pin_service.set_pin(s, current=current_pin, new=new_pin, client=_client(request))
     except admin_pin_service.AdminPinError as e:
         s.rollback()
-        ctx = {
-            "f": _event_form(s.get(Event, 1)),
-            "saved": 0,
-            "pin_saved": 0,
-            "pin_state": _pin_state(s),
-            "error": None,
-            "pin_error": str(e),
-        }
+        ctx = _settings_ctx(s, pin_error=str(e))
         return templates.TemplateResponse(request, "setup.html", ctx, status_code=422)
     return RedirectResponse("/einstellungen?pin_saved=1", status_code=303)
+
+
+@router.post("/einstellungen/alle-daten-loeschen", response_class=HTMLResponse)
+def delete_all_data(
+    request: Request,
+    confirm: str = Form(""),
+    pin: str = Form(""),
+    s: Session = Depends(get_session),
+):
+    backup = request.app.state.backup
+    try:
+        reset.check(s, confirm=confirm, pin=pin)
+        if backup is not None:
+            # Safety net: the deleted data can still be restored from this backup
+            backup.run_all()
+            backup.archive_journal()
+        reset.delete_all_data(s, client=_client(request))
+    except reset.ResetError as e:
+        s.rollback()
+        ctx = _settings_ctx(s, reset_error=str(e))
+        return templates.TemplateResponse(request, "setup.html", ctx, status_code=422)
+    request.app.state.pending_imports.clear()
+    if backup is not None:
+        backup.snapshot()
+    return RedirectResponse("/einstellungen?reset_done=1", status_code=303)
 
 
 @router.post("/einstellungen", response_class=HTMLResponse)
@@ -141,14 +171,7 @@ def settings_save(
             if used is not None and used < values["private_number_start"]:
                 raise MoneyError("Es gibt bereits Privatartikel unterhalb der Startnummer")
     except (MoneyError, ValueError) as e:
-        ctx = {
-            "f": form,
-            "saved": 0,
-            "pin_saved": 0,
-            "pin_state": _pin_state(s),
-            "error": str(e),
-            "pin_error": None,
-        }
+        ctx = _settings_ctx(s, f=form, error=str(e))
         return templates.TemplateResponse(request, "setup.html", ctx, status_code=422)
     shops.update_event(s, values, _client(request))
     return RedirectResponse("/einstellungen?saved=1", status_code=303)

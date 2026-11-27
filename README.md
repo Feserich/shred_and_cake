@@ -78,6 +78,10 @@ These are the technical details that were left out of the end-user manual on pur
   `sales.csv` are written to `data/snapshots/` – `;`-separated, UTF-8 with BOM, so they open
   directly in Excel/LibreOffice. Together with `journal.csv` they let the Basar be reconstructed
   by hand.
+- **Delete all data** (e.g. test data before the real Basar): *Einstellungen → Alle Daten löschen*
+  (confirmation word, plus the admin PIN if one is set). It takes a backup first, moves
+  `journal.csv` to `backups/journal-<timestamp>.csv` and empties every table except the event
+  settings (incl. admin PIN). Alternative: stop the program and delete/rename `data/`.
 - **Restore a backup:** close the program, delete `skibasar.db-wal` and `skibasar.db-shm`, copy the
   newest file from `data/backups/` to `data/skibasar.db`, restart.
 - **Money:** commission is calculated once per seller on the sum of their sales and rounded

@@ -8,7 +8,7 @@
 
 **Mit Telefonen:** Unter Windows stattdessen `Skibasar-mit-Telefonen.bat` starten, unter Linux `./skibasar --lan`. Im Fenster und auf der Seite **Telefon** stehen ein QR-Code und eine **PIN**. Telefon ins gleiche WLAN bringen, QR-Code scannen, PIN eingeben. Der Laptop selbst braucht keine PIN.
 
-**Beenden:** das Fenster bzw. Terminal schließen (oder dort Strg+C drücken). Alle Daten bleiben erhalten – den Ordner `data` neben dem Programm nie löschen.
+**Beenden:** das Fenster bzw. Terminal schließen (oder dort Strg+C drücken). Alle Daten bleiben erhalten – den Ordner `data` neben dem Programm während des Basars nie löschen.
 
 ## 2. Vorbereitung (vor dem Basar)
 
@@ -22,6 +22,10 @@
 Schickt ein Händler später eine neue Liste, einfach erneut hochladen. Die Vorschau zeigt dann farbig, was **neu** (grün), **geändert** (gelb) oder **unverändert** (grau) ist. Artikel, die in der neuen Datei fehlen, sind rot durchgestrichen und werden beim Übernehmen **gelöscht** – das Programm fragt vorher nach.
 
 Einzelne Nachlieferungen eines Händlers lassen sich auf der Händlerseite unter **„+ Artikel manuell hinzufügen“** erfassen (Nummer aus dem Bereich des Händlers). Achtung: Ein späterer CSV-Import löscht diese Artikel wieder, wenn sie nicht in der Datei stehen.
+
+**Testdaten löschen:** Wer das Programm vorher ausprobiert hat, löscht die Testdaten vor dem echten Basar unter **Einstellungen → Alle Daten löschen**: aufklappen, zur Bestätigung `LÖSCHEN` eingeben (und die Admin-PIN, falls eingerichtet), dann **„Alle Daten unwiderruflich löschen“**. Gelöscht werden alle Verkäufer und Händler mit ihren Artikeln, alle Verkäufe, Ausgaben, die Eingaben im Abschluss und das Protokoll. Name, Datum, Gebühren und die Admin-PIN bleiben erhalten. Vorher legt das Programm automatisch eine Sicherung an. Händler danach also neu anlegen und ihre CSV-Listen erneut hochladen.
+
+*Alternative:* Programm beenden und den Ordner `data` neben dem Programm löschen (oder umbenennen, z. B. in `data-test`). Beim nächsten Start legt das Programm einen leeren Ordner an. Dabei gehen **auch die Einstellungen, die Admin-PIN und alle Sicherungen** verloren – Einstellungen und PIN also neu eingeben. Nur bei beendetem Programm, nie während des Basars!
 
 ## 3. Am Basartag
 

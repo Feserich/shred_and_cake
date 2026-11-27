@@ -31,5 +31,18 @@
   <button type="submit">PIN speichern</button>
 </form>
 {% endif %}
+
+<h2>Alle Daten löschen</h2>
+{% if reset_error %}<p class="error">{{ reset_error }}</p>{% endif %}
+{% if reset_done %}<div data-toast="ok">Alle Daten gelöscht.</div>{% endif %}
+<p class="hint">Zum Beispiel, um Testdaten vor dem echten Basar zu entfernen. Gelöscht werden alle Verkäufer und Händler mit ihren Artikeln, alle Verkäufe, Ausgaben, die Eingaben im Abschluss und das Protokoll. Die Einstellungen oben und die Admin-PIN bleiben erhalten. Vorher wird automatisch eine Sicherung angelegt (unter <a href="/sicherung">Sicherung</a>).</p>
+<details{% if reset_error %} open{% endif %}>
+  <summary>Alle Daten löschen …</summary>
+  <form method="post" action="/einstellungen/alle-daten-loeschen">
+    <label>Zur Bestätigung „{{ reset_confirm_word }}“ eingeben <input name="confirm" autocomplete="off" required></label>
+    {% if pin_state != "none" %}<label>Admin-PIN <input type="password" name="pin" inputmode="numeric" autocomplete="off" required></label>{% endif %}
+    <button type="submit" class="danger">Alle Daten unwiderruflich löschen</button>
+  </form>
+</details>
 <p class="app-version">Skibasar {{ app_version }}</p>
 {% endblock %}
